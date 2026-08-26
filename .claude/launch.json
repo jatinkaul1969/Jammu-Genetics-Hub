@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "jgh-dev",
+      "runtimeExecutable": "cmd.exe",
+      "runtimeArgs": ["/c", "D:\\Jammu Genetics Hub\\Jammu-Genetics-Hub\\dev.cmd"],
+      "port": 3000
+    }
+  ]
+}

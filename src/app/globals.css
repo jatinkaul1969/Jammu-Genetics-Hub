@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #f6f8f7;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef2f0;
+  --color-border: #dde5e1;
+  --color-ink: #142420;
+  --color-ink-soft: #55655f;
+  --color-ink-faint: #8a9691;
+
+  --color-brand: #0b6e5c;
+  --color-brand-dark: #063f34;
+  --color-brand-soft: #e3f0ec;
+  --color-brand-light: #14a085;
+
+  --color-accent: #c1502e;
+  --color-accent-soft: #f8e6df;
+
+  --color-gold: #b8860b;
+  --color-gold-soft: #fbf0d9;
+
+  --color-success: #2f7a4d;
+  --color-success-soft: #e3f3e7;
+
+  /* A curated, varied palette used to give categories/badges their own
+     identity instead of everything sharing the single brand teal. */
+  --color-cat-teal: #0b6e5c;
+  --color-cat-teal-soft: #e3f0ec;
+  --color-cat-blue: #1d5fa8;
+  --color-cat-blue-soft: #e2eefa;
+  --color-cat-purple: #7c3aed;
+  --color-cat-purple-soft: #efe6fc;
+  --color-cat-coral: #d1521f;
+  --color-cat-coral-soft: #fbe6de;
+  --color-cat-pink: #c22a68;
+  --color-cat-pink-soft: #fbe3ec;
+  --color-cat-amber: #a8720b;
+  --color-cat-amber-soft: #fbf0d9;
+  --color-cat-indigo: #4338ca;
+  --color-cat-indigo-soft: #e6e5fb;
+  --color-cat-cyan: #0e7f96;
+  --color-cat-cyan-soft: #dff5f8;
+}
+
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-muted: var(--color-surface-muted);
+  --color-border: var(--color-border);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-ink-faint: var(--color-ink-faint);
+  --color-brand: var(--color-brand);
+  --color-brand-dark: var(--color-brand-dark);
+  --color-brand-soft: var(--color-brand-soft);
+  --color-brand-light: var(--color-brand-light);
+  --color-accent: var(--color-accent);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-gold: var(--color-gold);
+  --color-gold-soft: var(--color-gold-soft);
+  --color-success: var(--color-success);
+  --color-success-soft: var(--color-success-soft);
+  --color-cat-teal: var(--color-cat-teal);
+  --color-cat-teal-soft: var(--color-cat-teal-soft);
+  --color-cat-blue: var(--color-cat-blue);
+  --color-cat-blue-soft: var(--color-cat-blue-soft);
+  --color-cat-purple: var(--color-cat-purple);
+  --color-cat-purple-soft: var(--color-cat-purple-soft);
+  --color-cat-coral: var(--color-cat-coral);
+  --color-cat-coral-soft: var(--color-cat-coral-soft);
+  --color-cat-pink: var(--color-cat-pink);
+  --color-cat-pink-soft: var(--color-cat-pink-soft);
+  --color-cat-amber: var(--color-cat-amber);
+  --color-cat-amber-soft: var(--color-cat-amber-soft);
+  --color-cat-indigo: var(--color-cat-indigo);
+  --color-cat-indigo-soft: var(--color-cat-indigo-soft);
+  --color-cat-cyan: var(--color-cat-cyan);
+  --color-cat-cyan-soft: var(--color-cat-cyan-soft);
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-dark);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Shared text input styling for admin/checkout forms — one definition
+   instead of each form repeating its own identical <style jsx global>. */
+.input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.875rem;
+  outline: none;
+}
+.input:focus {
+  border-color: var(--color-brand);
+}
+
+@media print {
+  header,
+  footer,
+  .fixed,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}

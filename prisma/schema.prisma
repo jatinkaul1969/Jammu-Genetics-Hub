@@ -1,0 +1,443 @@
+// Jammu Genetics Hub — data model
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// A "request a callback" lead captured from the search page — works for
+// guests too (no account required), so sales/support can follow up even
+// with people who never log in. Auto-assigned to an online support staff
+// member on creation — see src/lib/lead-assignment.ts.
+model Lead {
+  id           String     @id @default(cuid())
+  name         String
+  phone        String
+  city         String
+  area         String
+  source       String     @default("search_widget")
+  status       String     @default("NEW") // NEW | CONTACTED | FOLLOW_UP | CONVERTED | CLOSED
+  assignedToId String?
+  assignedTo   AdminUser? @relation(fields: [assignedToId], references: [id])
+  createdAt    DateTime   @default(now())
+
+  notes LeadNote[]
+
+  @@map("leads")
+}
+
+// A timestamped call/update log entry on a lead — lets whoever picks up the
+// next call (even a different staff member) see exactly where things were
+// left off, instead of starting the conversation cold.
+model LeadNote {
+  id        String     @id @default(cuid())
+  leadId    String
+  lead      Lead       @relation(fields: [leadId], references: [id])
+  adminId   String?
+  admin     AdminUser? @relation(fields: [adminId], references: [id])
+  body      String
+  createdAt DateTime   @default(now())
+
+  @@map("lead_notes")
+}
+
+// A limited-access support-team account — separate from the single shared
+// ADMIN_PASSWORD "owner" login, which always keeps full access to everything
+// including staff management, catalog and pricing (never delegable).
+// `permissionsJson` is a JSON array of keys from src/lib/permissions.ts,
+// chosen per-staff-member by the owner — e.g. ["leads","whatsapp"] — rather
+// than a fixed role, so each hire gets exactly the areas they're meant to work.
+model AdminUser {
+  id              String    @id @default(cuid())
+  name            String
+  username        String    @unique
+  passwordHash    String
+  permissionsJson String    @default("[]")
+  team            String    @default("support") // "support" | "sales" | "operations" — organizational grouping only, see src/lib/permissions.ts
+  enabled         Boolean   @default(true) // owner can disable an account without deleting it
+  online          Boolean   @default(false) // staff-controlled "available for new leads" toggle
+  lastAssignedAt  DateTime? // round-robin tie-breaker
+  createdAt       DateTime  @default(now())
+
+  assignedLeads  Lead[]
+  leadNotes      LeadNote[]
+  bookedBookings Booking[]
+
+  @@map("admin_users")
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────
+
+// The owner's login password, changeable from /admin/settings without
+// touching .env or restarting the server. Singleton row (fixed id "owner").
+// Until the owner changes their password for the first time, this table has
+// no row and ADMIN_PASSWORD from .env is the fallback — see admin-session.ts.
+model OwnerCredential {
+  id           String   @id @default("owner")
+  passwordHash String
+  updatedAt    DateTime @updatedAt
+
+  @@map("owner_credential")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  name      String
+  age       Int
+  gender    String? // "male" | "female" | "other"
+  email     String?
+  createdAt DateTime @default(now())
+
+  // Standing membership (see src/lib/collection-slots.ts for the fee/discount
+  // constants) — a flat 10% off every booking once purchased at checkout,
+  // separate from one-off coupon codes.
+  membershipActive    Boolean   @default(false)
+  membershipExpiresAt DateTime?
+
+  bookings     Booking[]
+  patients     Patient[]
+  addresses    Address[]
+  cartSnapshot CartSnapshot?
+}
+
+// A server-side mirror of a logged-in user's client-side cart, kept in sync
+// so we can detect "added items, never booked" and follow up — the cart
+// itself stays client-side (localStorage) as the source of truth for the UI.
+model CartSnapshot {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  itemsJson String // JSON array of {productName, productSlug, labName, price}
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@map("cart_snapshots")
+}
+
+// A person a booking can be made for — the account holder's own "self" entry
+// is created on first use, plus any family members the user adds at checkout.
+model Patient {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  name         String
+  age          Int
+  gender       String? // "male" | "female" | "other"
+  relationship String   @default("self") // self | spouse | child | parent | sibling | other
+  createdAt    DateTime @default(now())
+
+  bookings Booking[]
+
+  @@map("patients")
+}
+
+// A saved collection address, reusable across bookings.
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  label       String   @default("Home")
+  addressLine String
+  city        String
+  pincode     String
+  latitude    Float? // precise pinned location, for phlebotomist navigation
+  longitude   Float?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  bookings Booking[]
+
+  @@map("addresses")
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  purpose   String   @default("login") // "login" | "booking"
+  consumed  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+}
+
+// ── Catalog ───────────────────────────────────────────────────────────
+
+model Lab {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  shortName     String
+  isOwn         Boolean  @default(false) // true only for Jammu Genetics Hub
+  logoInitials  String
+  colorHex      String
+  rating        Float
+  ratingCount   Int
+  accreditation String // e.g. "NABL & CAP Accredited"
+  turnaroundNote String // e.g. "Reports in 24 hrs"
+  homeCollection Boolean @default(true)
+  // True for the specialty/genetic-testing partner labs (AMPATH, Tata 1mg,
+  // MedGenome, Yoda, Lilac Insights) — these don't price routine commodity
+  // tests at all, only the specific specialty tests they actually offer, so
+  // new products don't auto-create a price row for them like the 5 general
+  // comparison labs get.
+  isSpecialtyPartner Boolean @default(false)
+
+  prices Price[]
+
+  @@map("labs")
+}
+
+model Category {
+  id    String @id @default(cuid())
+  slug  String @unique
+  name  String
+  icon  String // lucide icon name
+  order Int    @default(0)
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  name           String
+  type           String // "TEST" | "PACKAGE"
+  categoryId     String
+  category       Category @relation(fields: [categoryId], references: [id])
+  parameters     Int
+  sampleType     String // e.g. "Blood"
+  fasting        Boolean  @default(false)
+  fastingHours   Int?
+  reportHours    Int // turnaround time in hours
+  gender         String   @default("both") // "male" | "female" | "both"
+  minAge         Int      @default(0)
+  description    String // short one-liner — used as the card/meta subtitle
+  about          String   @default("") // longer "what is this test & what it's used for" — shown on the product page before the price comparison
+  includesJson   String // JSON string array of included sub-test names
+  popular        Boolean  @default(false)
+  badge          String? // e.g. "Most Booked", "Free Test"
+
+  prices Price[]
+
+  @@map("products")
+}
+
+// Price of a given product at a given lab — this is the comparison engine.
+// Not every lab prices every product (deliberately sparse for specialty/
+// genetic tests — some tests are only offered by specific partner labs).
+model Price {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  labId     String
+  lab       Lab     @relation(fields: [labId], references: [id])
+  mrp       Int
+  price     Int
+  testCode  String? // that lab's internal order/routing code — admin reference only, never shown to customers
+
+  @@unique([productId, labId])
+  @@map("prices")
+}
+
+// ── Coupons ───────────────────────────────────────────────────────────
+
+model Coupon {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  description    String
+  type           String // "PERCENT" | "FLAT"
+  value          Int // percent (e.g. 15) or flat rupee amount
+  maxDiscount    Int? // cap for PERCENT coupons, in rupees
+  minOrderAmount Int       @default(0)
+  // Who the coupon is for — "ALL" | "NEW_USER" | "MEMBER" — the source of
+  // truth for eligibility (src/lib/coupons.ts) and for which customers see
+  // it listed at checkout. firstOrderOnly is kept in sync automatically
+  // (true iff audience is "NEW_USER") for any code still reading it directly.
+  audience       String    @default("ALL")
+  firstOrderOnly Boolean   @default(false)
+  active         Boolean   @default(true)
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@map("coupons")
+}
+
+// ── Bookings ──────────────────────────────────────────────────────────
+
+model Booking {
+  id             String   @id @default(cuid())
+  bookingCode    String   @unique
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  labId          String
+  status         String   @default("PENDING") // PENDING | CONFIRMED | COLLECTED | REPORT_READY | CANCELLED
+  scheduledDate  String // ISO date (yyyy-mm-dd)
+  scheduledSlot  String // e.g. "07:00 AM - 09:00 AM"
+  patientId      String?
+  patient        Patient? @relation(fields: [patientId], references: [id])
+  patientName    String
+  patientAge     Int
+  addressId      String?
+  address        Address? @relation(fields: [addressId], references: [id])
+  addressLine    String
+  city           String
+  pincode        String
+  latitude       Float? // pinned location, for phlebotomist navigation
+  longitude      Float?
+  phone          String
+  totalMrp       Int
+  totalAmount    Int // final payable amount — items minus discount, plus the fees below
+  couponCode     String?
+  discountAmount Int      @default(0)
+  discountKind   String? // "COUPON" | "MEMBERSHIP" — which discount actually applied (the larger of the two, never both)
+  reportFile     String? // filename under storage/reports, not web-accessible directly
+  adminNote      String?
+
+  // Flat add-on fees — never discounted by a coupon or membership (same rule
+  // Redcliffe and other partner labs use), computed server-side in
+  // create-booking.ts from the constants in src/lib/collection-slots.ts.
+  diagnosticFee Int @default(0) // small per-visit platform fee, charged on every booking
+  expressFee    Int @default(0) // same-day collection surcharge
+  hardCopyFee   Int @default(0) // physical/printed report add-on
+  membershipFee Int @default(0) // one-time membership purchase — charged once per checkout, on the first booking only
+
+  // Set when a sales/support staff member books on behalf of a customer
+  // over a call, rather than the customer booking it themselves — the
+  // booking still belongs to the customer's own account either way.
+  bookedByStaffId String?
+  bookedByStaff   AdminUser? @relation(fields: [bookedByStaffId], references: [id], onDelete: SetNull)
+
+  // Set when a phlebotomist books an additional test on the spot at a
+  // patient's home (see /admin/phlebo/book-for-customer) — same shared
+  // booking-creation path as staff phone-in sales, just attributed to
+  // whichever phlebo converted the customer in person.
+  bookedByPhleboId String?
+  bookedByPhlebo   Phlebo? @relation("PhleboBookedBookings", fields: [bookedByPhleboId], references: [id], onDelete: SetNull)
+
+  // Online payment (Razorpay) — optional; booking still confirms without
+  // prepayment (pay-on-collection remains the default) until this is paid.
+  paymentStatus    String  @default("UNPAID") // UNPAID | PAID
+  paymentMethod    String? // "razorpay" | "cash"
+  razorpayOrderId  String?
+  razorpayPaymentId String?
+
+  // Phlebotomist pickup workflow — only meaningful for our own lab's
+  // bookings (see Lab.isOwn); a competitor lab dispatches its own
+  // phlebotomist, which we don't control or track. A timestamp per stage
+  // (not just the current `phleboStatus`) so "when did they actually
+  // arrive" is an answerable question, not just "have they arrived yet" —
+  // plus the full `PickupEvent` log below for a complete, permanent record
+  // of every status change (including reassignments/cancellations).
+  phleboId          String?
+  phlebo            Phlebo?   @relation("PickupAssignment", fields: [phleboId], references: [id], onDelete: SetNull)
+  phleboStatus      String    @default("UNASSIGNED") // UNASSIGNED | ASSIGNED | ACCEPTED | EN_ROUTE | ARRIVED | COLLECTED | CANCELLED_BY_PHLEBO
+  phleboAssignedAt  DateTime?
+  phleboRespondedAt DateTime? // when ACCEPTED
+  phleboEnRouteAt   DateTime?
+  phleboArrivedAt   DateTime?
+  phleboCollectedAt DateTime?
+  reminderSentAt    DateTime? // set once the T-30-min "your phlebo is X, call Y" notice has gone out
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  items        BookingItem[]
+  pickupEvents PickupEvent[]
+
+  @@map("bookings")
+}
+
+// A permanent, append-only timeline of every pickup status change on a
+// booking — assignment, acceptance, en route, arrival, collection,
+// cancellations and reassignments all get their own timestamped row here,
+// even though Booking only keeps the latest value of each stage. This is
+// the actual "record" for reporting/audit — Booking's own fields are just a
+// fast-access summary of it.
+model PickupEvent {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  status    String // same vocabulary as Booking.phleboStatus
+  actor     String // "system" (auto-assignment) | "phlebo" | "owner" | "staff"
+  createdAt DateTime @default(now())
+
+  @@map("pickup_events")
+}
+
+model BookingItem {
+  id          String  @id @default(cuid())
+  bookingId   String
+  booking     Booking @relation(fields: [bookingId], references: [id])
+  productName String
+  price       Int
+  mrp         Int
+
+  @@map("booking_items")
+}
+
+// ── WhatsApp automation ──────────────────────────────────────────────
+
+// One thread per customer WhatsApp number (Meta's "wa_id" format, e.g.
+// "919876543210" — no "+"). The bot auto-replies using the same Claude
+// logic as the website chat until botPaused flips true, either because the
+// customer asked for a human or an admin sent a manual reply — at that
+// point the bot stays quiet until an admin resumes it.
+model WhatsAppConversation {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  botPaused Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages WhatsAppMessage[]
+
+  @@map("whatsapp_conversations")
+}
+
+model WhatsAppMessage {
+  id             String               @id @default(cuid())
+  conversationId String
+  conversation   WhatsAppConversation @relation(fields: [conversationId], references: [id])
+  direction      String // "IN" (from customer) | "OUT" (to customer)
+  sender         String // "customer" | "bot" | "admin"
+  body           String
+  createdAt      DateTime             @default(now())
+
+  @@map("whatsapp_messages")
+}
+
+// ── Phlebotomist pickups ─────────────────────────────────────────────
+
+// A phlebotomist account — its own limited login, separate from both the
+// owner and support-staff accounts. Round-robin assigned to new bookings
+// for our own lab (Lab.isOwn) — see src/lib/phlebo-assignment.ts.
+// `currentLat`/`currentLng` hold only the latest known position (not a
+// track history), refreshed while the phlebo has live tracking active.
+model Phlebo {
+  id                String    @id @default(cuid())
+  name              String
+  phone             String    @unique
+  username          String    @unique
+  passwordHash      String
+  enabled           Boolean   @default(true)
+  online            Boolean   @default(false) // available to receive new pickup assignments
+  currentLat        Float?
+  currentLng        Float?
+  locationUpdatedAt DateTime?
+  lastAssignedAt    DateTime?
+  createdAt         DateTime  @default(now())
+
+  bookings       Booking[] @relation("PickupAssignment")
+  bookedBookings Booking[] @relation("PhleboBookedBookings")
+
+  @@map("phlebos")
+}
