@@ -20,7 +20,9 @@ to claim JGH itself is "NABL Accredited" or "our own lab." See the
 ## Stack
 
 - Next.js (App Router) + TypeScript + Tailwind CSS v4
-- Prisma 7 + SQLite (via the `@prisma/adapter-better-sqlite3` driver adapter)
+- Prisma 7 + Postgres (via the `@prisma/adapter-pg` driver adapter) — a hosted
+  [Prisma Postgres](https://console.prisma.io) instance in production; any
+  Postgres connection string works locally too (see "Getting started" below)
 - Cart is client-side (localStorage); patient auth is an httpOnly `jgh_uid`
   cookie set after OTP verification; admin auth is a separate httpOnly
   `jgh_admin` cookie (a salted hash of `ADMIN_PASSWORD`, not the password
@@ -45,11 +47,16 @@ item is back, B's item never appears).
 
 ```bash
 npm install
-cp .env.example .env      # then set ADMIN_PASSWORD
-npx prisma migrate dev    # creates dev.db
+cp .env.example .env      # then set DATABASE_URL and ADMIN_PASSWORD
+npx prisma migrate dev    # applies the schema to your Postgres database
 npx prisma db seed        # loads labs, categories, tests/packages, prices
 npm run dev
 ```
+
+`DATABASE_URL` needs a real Postgres connection string — the easiest way to
+get one locally is the same [Prisma Postgres](https://console.prisma.io)
+service production uses (free tier), or point at any local/Docker Postgres.
+There's no more SQLite file to worry about.
 
 Then open http://localhost:3000 (storefront) or http://localhost:3000/admin
 (admin panel — log in with `ADMIN_PASSWORD`).
@@ -60,9 +67,67 @@ in its shell environment that crashes Turbopack's CSS worker process on Windows.
 `next dev --webpack --disable-source-maps` to avoid it. If you hit the same crash
 elsewhere, that's the fix.
 
-**SQLite + dev server:** `better-sqlite3` holds an exclusive file lock while the
-dev server is running. Stop the dev server (or kill its `node` process) before
-running `prisma migrate` or `prisma db seed`, or you'll see `database is locked`.
+**Generated Prisma client**: `src/generated/prisma` is gitignored (it's
+generated code) and the schema uses that custom output path, so it must be
+regenerated after every fresh `npm install` — a `postinstall` script in
+`package.json` runs `prisma generate` automatically for this. If you ever see
+`Module not found: Can't resolve '@/generated/prisma/client'`, that hook
+didn't run — just run `npx prisma generate` by hand.
+
+## Deployment
+
+Live on [Vercel](https://vercel.com), connected to the GitHub repo
+(`jatinkaul1969/Jammu-Genetics-Hub`) for auto-deploy on every push to `main`.
+Database is a [Prisma Postgres](https://console.prisma.io) instance
+(Singapore region — closest to Jammu). The same `DATABASE_URL` is currently
+used for both local dev and production, so local testing and the live site
+share one database; point local `.env` at a different Postgres instance if
+you want to stop that.
+
+**Required environment variables on Vercel** (Project Settings → Environment
+Variables — these are separate from local `.env` and must be added there
+explicitly, nothing carries over automatically):
+- `DATABASE_URL` — the Postgres connection string
+- `ADMIN_PASSWORD` — the owner login password. **This one is easy to forget**
+  — a fresh Vercel project has neither variable set by default, and the
+  admin login page fails with "Admin access isn't configured yet" until it's
+  added. Adding/changing an env var doesn't affect an already-running
+  deployment — you must **Redeploy** afterward for it to take effect.
+- Everything else (`MSG91_*`, `RAZORPAY_*`, `WHATSAPP_*`, `ANTHROPIC_API_KEY`,
+  `CRON_SECRET`) is optional, same as local — the app runs fine in dev-mode
+  fallback behavior without them (OTP shown on-screen instead of texted, no
+  online prepayment button, chat uses the keyword fallback, etc.)
+
+**Two gotchas hit standing this up, worth knowing if the site ever 404s or
+looks unreachable after a redeploy:**
+
+1. **Deployment Protection.** Vercel's "Vercel Authentication" protection,
+   if left on Standard/all-deployments, puts a Vercel-login wall in front of
+   *Production* too — meaning real customers would be bounced to a Vercel
+   SSO page instead of the site. Project → Settings → Deployment Protection
+   → Vercel Authentication should be scoped to Preview deployments only, not
+   Production.
+2. **Domain isn't automatic for team-owned projects.** A project under a
+   Vercel *team* workspace doesn't automatically get the clean
+   `<project-name>.vercel.app` address the way a personal-account project
+   does (that exact name may already be taken by someone else — `.vercel.app`
+   names are global, not per-team). Check Project → Settings → Domains; if
+   it's empty, add the desired `<name>.vercel.app` explicitly there.
+
+**The build itself**: `next build` needs the generated Prisma client (see the
+`postinstall` note above) — this is the one dependency that isn't obvious
+from `package.json` alone, since `src/generated/prisma` is gitignored and
+only exists after `prisma generate` runs. If a deployment fails with `Module
+not found: Can't resolve '@/generated/prisma/client'`, confirm the
+`postinstall` script in `package.json` is still `prisma generate`.
+
+**Database differs from local dev in one behavior worth knowing**: SQLite's
+`contains` filter is case-insensitive by default; Postgres's isn't. Every
+`contains:` filter in the app search/lookup features
+(`src/lib/catalog.ts`, `src/lib/chat-context.ts`, the admin/staff search
+routes) explicitly passes `mode: "insensitive"` to match the SQLite-era
+behavior — if you ever add a new `contains:` filter, add that too, or search
+will silently become case-sensitive in production only.
 
 ## OTP login
 
@@ -236,8 +301,8 @@ from [`prisma/seed.ts`](prisma/seed.ts) as a baseline default, but ongoing
 coupon management belongs in the admin UI now, not the seed file.
 
 **Client/server split, easy to get wrong**: `src/lib/coupons.ts` imports
-`prisma`, which pulls in the `better-sqlite3` driver adapter — a Node-only
-module. A `"use client"` component that imports *anything* from
+`prisma`, which pulls in the `pg` driver adapter — a Node-only module. A
+`"use client"` component that imports *anything* from
 `coupons.ts` (even a plain constant with no database code) drags that whole
 chain into the browser bundle and breaks the dev build with `Module not
 found: Can't resolve 'fs'`, taking down every page that shares the chunk —
