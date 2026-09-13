@@ -3,15 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { sendWhatsAppText } from "@/lib/whatsapp-cloud";
 import { parseSlotStart } from "@/lib/pickup-time";
 import { buildPickupReminderMessage } from "@/lib/phlebo-notify";
+import { isAuthorizedCronRequest } from "@/lib/cron-auth";
 
 // Not triggered by anything inside this app — Next.js has no built-in
 // scheduler. This route only DOES the sending; something external needs to
 // call it periodically (Vercel Cron, an OS cron job, a task scheduler...).
 // See README "Phlebo pickups" section for setup.
 export async function GET(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  const provided = new URL(req.url).searchParams.get("secret");
-  if (secret && provided !== secret) {
+  if (!isAuthorizedCronRequest(req)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, Loader2 } from "lucide-react";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -42,8 +43,7 @@ export default function AdminLoginPage() {
 
       <form onSubmit={submit} className="rounded-xl border border-border bg-surface p-5">
         <label className="mb-1 block text-xs font-medium text-ink-soft">Admin password</label>
-        <input
-          type="password"
+        <PasswordInput
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="mb-3 w-full rounded-lg border border-border bg-bg px-3 py-2.5 text-sm outline-none focus:border-brand"

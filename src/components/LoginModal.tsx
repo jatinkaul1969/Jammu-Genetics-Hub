@@ -137,7 +137,7 @@ export function LoginModal({ onClose, onSuccess }: Props) {
             </p>
             {devOtp && (
               <p className="mb-4 rounded-lg border border-gold-soft bg-gold-soft px-3 py-2 font-mono text-xs text-gold">
-                Dev mode — no SMS gateway connected yet. Your OTP is <strong>{devOtp}</strong>.
+                Dev mode — no WhatsApp gateway connected yet. Your OTP is <strong>{devOtp}</strong>.
               </p>
             )}
             <input

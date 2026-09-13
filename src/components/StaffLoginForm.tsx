@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export function StaffLoginForm() {
   const router = useRouter();
@@ -52,9 +53,8 @@ export function StaffLoginForm() {
 
       <label className="block">
         <span className="mb-1 block text-xs font-medium text-ink-soft">Password</span>
-        <input
+        <PasswordInput
           required
-          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-brand"

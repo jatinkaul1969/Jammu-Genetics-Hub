@@ -28,17 +28,17 @@ export async function POST(req: Request) {
     );
   }
 
-  const { devOtp, expiresAt, smsError } = await issueOtp(phone, "login");
+  const { devOtp, expiresAt, sendError } = await issueOtp(phone, "login");
 
-  if (!devOtp && smsError) {
+  if (!devOtp && sendError) {
     // A provider is configured but the send failed — don't silently fall
     // back to showing the code, since that would leak it in a real deployment.
     return NextResponse.json(
-      { ok: false, error: "Could not send the SMS right now. Please try again shortly." },
+      { ok: false, error: "Could not send the WhatsApp code right now. Please try again shortly." },
       { status: 502 }
     );
   }
 
-  // devOtp is only present when no SMS gateway is configured — dev mode.
+  // devOtp is only present when no WhatsApp gateway is configured — dev mode.
   return NextResponse.json({ ok: true, devOtp, expiresAt });
 }

@@ -93,9 +93,9 @@ explicitly, nothing carries over automatically):
   admin login page fails with "Admin access isn't configured yet" until it's
   added. Adding/changing an env var doesn't affect an already-running
   deployment — you must **Redeploy** afterward for it to take effect.
-- Everything else (`MSG91_*`, `RAZORPAY_*`, `WHATSAPP_*`, `ANTHROPIC_API_KEY`,
+- Everything else (`RAZORPAY_*`, `WHATSAPP_*`, `ANTHROPIC_API_KEY`,
   `CRON_SECRET`) is optional, same as local — the app runs fine in dev-mode
-  fallback behavior without them (OTP shown on-screen instead of texted, no
+  fallback behavior without them (OTP shown on-screen instead of sent, no
   online prepayment button, chat uses the keyword fallback, etc.)
 
 **Two gotchas hit standing this up, worth knowing if the site ever 404s or
@@ -132,25 +132,33 @@ will silently become case-sensitive in production only.
 ## OTP login
 
 `POST /api/otp/send` is rate-limited (5 requests / 10 min per phone number) and
-tries a real SMS via MSG91 when configured (see below). Without those env vars,
-it runs in **dev mode**: a 6-digit code is generated, stored in the `OtpCode`
-table, and returned directly in the response as `devOtp` — the login modal
-shows it in an on-screen banner instead of texting it.
+sends the code over **WhatsApp** when configured. Without the env vars it runs
+in **dev mode**: a 6-digit code is generated, stored in the `OtpCode` table,
+and returned directly in the response as `devOtp` — the login modal shows it in
+an on-screen banner instead of sending it.
 
-To go live with real SMS, sign up at [msg91.com](https://msg91.com), create an
-OTP template, and set in `.env`:
+Delivery reuses the WhatsApp Cloud API credentials set up for the chat
+automation (`WHATSAPP_ACCESS_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID`, see below) —
+there is no separate SMS gateway and no per-message charge on WhatsApp's free
+tier. To go live:
 
-```
-MSG91_AUTH_KEY="..."
-MSG91_OTP_TEMPLATE_ID="..."
-MSG91_SENDER_ID="JGHLAB"
-```
+1. In the Meta app, open **WhatsApp → Message templates** and create a template
+   in the **Authentication** category with a **Copy code** button. Note its
+   name and language (e.g. `otp_login` / `en_US`).
+2. Set in `.env`:
 
-Once both `MSG91_AUTH_KEY` and `MSG91_OTP_TEMPLATE_ID` are set, `devOtp` stops
-being returned entirely — the code only ever leaves the server as a text
-message (see [`src/lib/sms.ts`](src/lib/sms.ts) and
-[`src/lib/otp.ts`](src/lib/otp.ts)). Swapping providers later just means
-rewriting `sendOtpSms()`.
+   ```
+   WHATSAPP_OTP_TEMPLATE_NAME="otp_login"
+   WHATSAPP_OTP_TEMPLATE_LANG="en_US"
+   ```
+
+Once `WHATSAPP_OTP_TEMPLATE_NAME` is set (and the Cloud API creds are present),
+`devOtp` stops being returned — the code only ever leaves the server as a
+WhatsApp message (see `sendOtpWhatsApp()` in
+[`src/lib/whatsapp-cloud.ts`](src/lib/whatsapp-cloud.ts) and
+[`src/lib/otp.ts`](src/lib/otp.ts)). Authentication templates carry the code in
+both the message body and the copy-code button, which is why the code is passed
+twice in the send payload.
 
 ## Chat widget
 
@@ -235,6 +243,10 @@ requires a pre-approved **message template** to send anything — this only
 affects proactively messaging a customer first (e.g. an automated
 abandoned-cart nudge), not replying to an inbound message, which is what this
 integration does.
+
+The same credentials also power **login OTP delivery** once you create an
+Authentication-category template and set `WHATSAPP_OTP_TEMPLATE_NAME` — see the
+[OTP login](#otp-login) section above.
 
 ## Collection slots, fees & membership
 

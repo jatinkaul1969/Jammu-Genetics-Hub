@@ -1,16 +1,16 @@
 import Link from "next/link";
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import { searchProducts, getCategories } from "@/lib/catalog";
 import { ProductCard } from "@/components/ProductCard";
 import { SearchBox } from "@/components/SearchBox";
+import { inheritedShareImages } from "@/lib/seo";
 
 type SearchParams = { q?: string; category?: string; type?: string };
 
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}): Promise<Metadata> {
+export async function generateMetadata(
+  { searchParams }: { searchParams: Promise<SearchParams> },
+  parent: ResolvingMetadata
+): Promise<Metadata> {
   const { q } = await searchParams;
   const title = q
     ? `${q} — Compare Prices Across Labs in Jammu`
@@ -18,7 +18,19 @@ export async function generateMetadata({
   const description = q
     ? `Compare "${q}" test prices in Jammu across Jammu Genetics Hub, Thyrocare, Redcliffe Labs, Dr Lal PathLabs and Metropolis. Book free home sample collection.`
     : "Browse and compare 70+ diagnostic tests and health packages across 5 labs in Jammu — Jammu Genetics Hub, Thyrocare, Redcliffe Labs, Dr Lal PathLabs and Metropolis. Free home sample collection.";
-  return { title, description };
+  const shareImages = await inheritedShareImages(parent);
+  return {
+    title,
+    description,
+    // Self-canonicalize every filtered/search-query variant to the plain
+    // /search page — these are UI states of one tool, not distinct content,
+    // so they shouldn't compete with each other (or with the dedicated
+    // /[city]/tests/[slug] pages, which are the real per-test pages) in
+    // Google's index.
+    alternates: { canonical: "/search" },
+    openGraph: { title, description, type: "website", url: "/search", images: shareImages.openGraph },
+    twitter: { card: "summary_large_image", title, description, images: shareImages.twitter },
+  };
 }
 
 export default async function SearchPage({

@@ -2,18 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { PhoneCall, X, Check, Loader2 } from "lucide-react";
+import { SERVICEABLE_CITIES } from "@/lib/serviceable-areas";
 
-// Only the auto-popup is dismissible for the session — the corner button
+// The auto-prompt is dismissible for the session — the corner button
 // underneath it always stays put so a callback can still be requested later.
+// It opens the SAME bottom-left panel as the manual button (never a
+// full-screen modal), so it can't sit on top of the page and swallow a
+// click meant for something else (e.g. the "Browse by category" circles).
 const MODAL_DISMISS_KEY = "jgh_callback_modal_dismissed";
-const MODAL_DELAY_MS = 1200;
+const AUTO_OPEN_DELAY_MS = 6000;
 
 export function CallbackWidget() {
   const [open, setOpen] = useState(false);
-  const [showModal, setShowModal] = useState(false);
+  const [autoPrompted, setAutoPrompted] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("Jammu");
+  const [city, setCity] = useState(SERVICEABLE_CITIES[0].label);
   const [area, setArea] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,13 +27,18 @@ export function CallbackWidget() {
     // Reading from sessionStorage (external store) on mount — can't run
     // during SSR, so this has to be an effect, not a lazy initializer.
     if (sessionStorage.getItem(MODAL_DISMISS_KEY) === "1") return;
-    const timer = setTimeout(() => setShowModal(true), MODAL_DELAY_MS);
+    const timer = setTimeout(() => {
+      setOpen(true);
+      setAutoPrompted(true);
+    }, AUTO_OPEN_DELAY_MS);
     return () => clearTimeout(timer);
   }, []);
 
-  function dismissModal() {
-    sessionStorage.setItem(MODAL_DISMISS_KEY, "1");
-    setShowModal(false);
+  function closePanel() {
+    // Once the auto-prompt has been shown and closed, don't pop it again
+    // this session — reopening is only ever via the corner button.
+    if (autoPrompted) sessionStorage.setItem(MODAL_DISMISS_KEY, "1");
+    setOpen(false);
   }
 
   async function submit(e: React.FormEvent) {
@@ -73,12 +82,17 @@ export function CallbackWidget() {
         className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
       />
       <div className="grid grid-cols-2 gap-2">
-        <input
+        <select
           value={city}
           onChange={(e) => setCity(e.target.value)}
-          placeholder="City"
           className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
-        />
+        >
+          {SERVICEABLE_CITIES.map((c) => (
+            <option key={c.key} value={c.label}>
+              {c.label}
+            </option>
+          ))}
+        </select>
         <input
           value={area}
           onChange={(e) => setArea(e.target.value)}
@@ -109,60 +123,35 @@ export function CallbackWidget() {
   );
 
   return (
-    <>
-      {showModal && !done && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
-          onClick={dismissModal}
-        >
-          <div
-            className="w-full max-w-sm rounded-2xl border border-border bg-surface p-5 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <p className="flex items-center gap-1.5 font-display text-base font-semibold text-ink">
-                <PhoneCall size={18} className="text-accent" /> Want us to call you instead?
-              </p>
-              <button onClick={dismissModal} className="text-ink-faint hover:text-ink" aria-label="Close">
-                <X size={18} />
-              </button>
-            </div>
-            <p className="mb-3 text-sm text-ink-soft">
-              Leave your number and our team will call you back to help you find and book the right test.
+    <div className="fixed bottom-4 left-4 z-30 sm:bottom-6 sm:left-6">
+      {open ? (
+        <div className="w-72 rounded-2xl border border-border bg-surface p-4 shadow-2xl">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 font-display text-sm font-semibold text-ink">
+              <PhoneCall size={16} className="text-accent" />
+              {autoPrompted && !done ? "Want us to call you instead?" : "Request a callback"}
             </p>
-            <form onSubmit={submit} className="space-y-2">
-              {fields}
-            </form>
-            <button onClick={dismissModal} className="mt-2 w-full text-center text-xs text-ink-faint hover:text-ink-soft">
-              No thanks, maybe later
+            <button onClick={closePanel} className="text-ink-faint hover:text-ink" aria-label="Close">
+              <X size={16} />
             </button>
           </div>
+
+          {autoPrompted && !done && (
+            <p className="mb-3 text-xs text-ink-soft">
+              Leave your number and our team will call you back to help you find and book the right test.
+            </p>
+          )}
+
+          {done ? doneState : <form onSubmit={submit} className="space-y-2">{fields}</form>}
         </div>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:opacity-90"
+        >
+          <PhoneCall size={16} /> Request a callback
+        </button>
       )}
-
-      <div className="fixed bottom-4 left-4 z-30 sm:bottom-6 sm:left-6">
-        {open ? (
-          <div className="w-72 rounded-2xl border border-border bg-surface p-4 shadow-2xl">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="flex items-center gap-1.5 font-display text-sm font-semibold text-ink">
-                <PhoneCall size={16} className="text-accent" /> Request a callback
-              </p>
-              <button onClick={() => setOpen(false)} className="text-ink-faint hover:text-ink" aria-label="Close">
-                <X size={16} />
-              </button>
-            </div>
-
-            {done ? doneState : <form onSubmit={submit} className="space-y-2">{fields}</form>}
-          </div>
-        ) : (
-          <button
-            onClick={() => setOpen(true)}
-            className="flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:opacity-90"
-          >
-            <PhoneCall size={16} /> Request a callback
-          </button>
-        )}
-      </div>
-    </>
+    </div>
   );
 }

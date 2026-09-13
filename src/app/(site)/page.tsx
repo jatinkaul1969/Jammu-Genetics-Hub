@@ -6,6 +6,8 @@ import { ProductCard } from "@/components/ProductCard";
 import { HeroSearch } from "@/components/HeroSearch";
 import { DiagnosticsBackdrop } from "@/components/DiagnosticsBackdrop";
 import { getBaseUrl } from "@/lib/site-url";
+import { SERVICEABLE_CITIES } from "@/lib/serviceable-areas";
+import { buildBusinessJsonLd } from "@/lib/seo";
 
 export default async function HomePage() {
   const [categories, popularProducts, labs, baseUrl] = await Promise.all([
@@ -18,17 +20,15 @@ export default async function HomePage() {
   const otherLabs = labs.filter((l) => !l.isOwn);
   const jgh = labs.find((l) => l.isOwn);
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "MedicalBusiness",
+  const jsonLd = buildBusinessJsonLd({
     name: "Jammu Genetics Hub",
     url: baseUrl,
     description:
       "Jammu's one-stop diagnostics platform, directly affiliated with every major NABL-accredited lab — compare test prices across all of them and book free home sample collection from whichever you choose.",
-    address: { "@type": "PostalAddress", addressLocality: "Jammu", addressRegion: "Jammu and Kashmir", addressCountry: "IN" },
-    areaServed: "Jammu",
-    medicalSpecialty: "Pathology",
-  };
+    addressLocality: "Jammu",
+    addressRegion: "Jammu and Kashmir",
+    areaServed: SERVICEABLE_CITIES.map((c) => c.label).join(", "),
+  });
 
   return (
     <div>
@@ -63,6 +63,16 @@ export default async function HomePage() {
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <h2 className="mb-4 font-display text-xl font-semibold text-ink">Browse by category</h2>
         <CategoryRail categories={categories} />
+        <p className="mt-4 flex flex-wrap items-center gap-1.5 text-xs text-ink-faint">
+          Serving: {SERVICEABLE_CITIES.map((c, i) => (
+            <span key={c.key} className="flex items-center gap-1.5">
+              <Link href={`/${c.key}`} className="font-medium text-brand hover:underline">
+                {c.label}
+              </Link>
+              {i < SERVICEABLE_CITIES.length - 1 && "·"}
+            </span>
+          ))}
+        </p>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6">

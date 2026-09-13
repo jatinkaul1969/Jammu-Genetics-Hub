@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { PERMISSIONS, STAFF_TEAMS } from "@/lib/permissions";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export function NewStaffForm() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [team, setTeam] = useState<string>(STAFF_TEAMS[0].key);
   const [permissions, setPermissions] = useState<string[]>([...STAFF_TEAMS[0].defaultPermissions]);
   const [saving, setSaving] = useState(false);
@@ -27,6 +29,10 @@ export function NewStaffForm() {
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -70,14 +76,23 @@ export function NewStaffForm() {
 
       <label className="block">
         <span className="mb-1 block text-xs font-medium text-ink-soft">Password</span>
-        <input
+        <PasswordInput
           required
-          type="password"
           minLength={6}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="input"
           placeholder="At least 6 characters"
+        />
+      </label>
+
+      <label className="block">
+        <span className="mb-1 block text-xs font-medium text-ink-soft">Confirm password</span>
+        <PasswordInput
+          required
+          minLength={6}
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="Re-enter the password"
         />
       </label>
 

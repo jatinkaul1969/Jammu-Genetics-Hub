@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Check, Trash2 } from "lucide-react";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export function PhleboEditForm({
   phleboId,
@@ -16,12 +17,17 @@ export function PhleboEditForm({
   const [phone, setPhone] = useState(initial.phone);
   const [enabled, setEnabled] = useState(initial.enabled);
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function save() {
+    if (newPassword && newPassword !== confirmPassword) {
+      setError("New passwords don't match.");
+      return;
+    }
     setSaving(true);
     setError(null);
     setSaved(false);
@@ -34,6 +40,7 @@ export function PhleboEditForm({
       if (!res.ok) throw new Error((await res.json()).error ?? "Could not save.");
       setSaved(true);
       setNewPassword("");
+      setConfirmPassword("");
       router.refresh();
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
@@ -89,17 +96,28 @@ export function PhleboEditForm({
         Account enabled (unchecking logs them out and blocks login immediately)
       </label>
 
-      <label className="block">
-        <span className="mb-1 block text-xs font-medium text-ink-soft">Reset password (optional)</span>
-        <input
-          type="password"
-          minLength={6}
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          placeholder="Leave blank to keep current password"
-          className="input"
-        />
-      </label>
+      <div className="space-y-2">
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-ink-soft">Reset password (optional)</span>
+          <PasswordInput
+            minLength={6}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="Leave blank to keep current password"
+          />
+        </label>
+        {newPassword && (
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-ink-soft">Confirm new password</span>
+            <PasswordInput
+              minLength={6}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Re-enter the new password"
+            />
+          </label>
+        )}
+      </div>
 
       {error && <p className="text-sm text-accent">{error}</p>}
       <button

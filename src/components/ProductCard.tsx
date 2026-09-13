@@ -18,14 +18,17 @@ export type ProductCardData = {
   labCount: number;
 };
 
-export function ProductCard({ product }: { product: ProductCardData }) {
+// hrefBase lets city landing pages (/[city]) point the card at the
+// city-scoped test page (/[city]/tests/[slug]) instead of the generic
+// /product/[slug] page — same card, different internal-link target.
+export function ProductCard({ product, hrefBase = "/product" }: { product: ProductCardData; hrefBase?: string }) {
   const off = percentOff(product.ownMrp, product.ownPrice);
   const jghIsLowest = product.ownPrice <= product.lowestPrice;
   const catColor = categoryColorForName(product.category.name);
 
   return (
     <Link
-      href={`/product/${product.slug}`}
+      href={`${hrefBase}/${product.slug}`}
       className="group flex flex-col rounded-xl border border-border bg-surface p-4 transition hover:-translate-y-0.5 hover:border-brand hover:shadow-md"
     >
       <div className="mb-2 flex items-center justify-between gap-2">

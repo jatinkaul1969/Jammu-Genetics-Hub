@@ -9,3 +9,8 @@ export const WHATSAPP_NUMBER = CONTACT_PHONES[0];
 export function buildWhatsAppLink(message: string) {
   return `https://wa.me/91${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
+
+// Shared default greeting for every "chat on WhatsApp" entry point (chat
+// widget, footer, contact links) — one string instead of each place
+// re-typing a slightly different opener.
+export const WHATSAPP_GREETING = "Hi Jammu Genetics Hub! I have a question about a test/booking.";

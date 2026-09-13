@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { validateCoupon } from "@/lib/coupons";
 import { assignPhleboToBooking } from "@/lib/phlebo-assignment";
+import { isServiceablePincode, SERVICEABLE_AREAS_HELP } from "@/lib/serviceable-areas";
 import {
   DIAGNOSTIC_FEE,
   EXPRESS_FEE,
@@ -151,6 +152,16 @@ export async function createBookingsForUser(
     pincode = created.pincode;
     latitude = created.latitude;
     longitude = created.longitude;
+  }
+
+  // Home collection is only offered where we run our own phlebotomists.
+  // Enforced here too (not just in the checkout UI) so the API can't be
+  // called directly with an out-of-area pincode.
+  if (!isServiceablePincode(pincode)) {
+    return {
+      ok: false,
+      error: `Home collection isn't available at pincode ${pincode} yet — we currently serve ${SERVICEABLE_AREAS_HELP}.`,
+    };
   }
 
   const cartSubtotal = items.reduce((s, i) => s + i.price, 0);

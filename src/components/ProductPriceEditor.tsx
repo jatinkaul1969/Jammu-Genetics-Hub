@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import { Loader2, Check, Trash2, Plus } from "lucide-react";
 import { percentOff } from "@/lib/format";
 
-type Lab = { id: string; name: string; shortName: string; isOwn: boolean };
+type Lab = {
+  id: string;
+  name: string;
+  shortName: string;
+  isOwn: boolean;
+  colorHex: string;
+  logoInitials: string;
+};
 type PriceRow = { labId: string; price: number; mrp: number; testCode: string | null };
 type Row = { price: string; mrp: string; testCode: string };
 
@@ -112,8 +119,18 @@ export function ProductPriceEditor({
           if (!lab || !row) return null;
           const off = percentOff(Number(row.mrp) || 0, Number(row.price) || 0);
           return (
-            <div key={labId} className="rounded-lg border border-border p-3">
+            <div
+              key={labId}
+              className="rounded-lg border border-l-4 border-border p-3"
+              style={{ borderLeftColor: lab.colorHex }}
+            >
               <div className="mb-2 flex items-center gap-2">
+                <span
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md font-mono text-[10px] font-semibold text-white"
+                  style={{ backgroundColor: lab.colorHex }}
+                >
+                  {lab.logoInitials}
+                </span>
                 <span className="text-sm font-medium text-ink">{lab.name}</span>
                 {lab.isOwn && (
                   <span className="rounded bg-brand px-1.5 py-0.5 text-[10px] font-semibold text-white">Our Lab</span>

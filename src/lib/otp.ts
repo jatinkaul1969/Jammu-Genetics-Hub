@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { sendOtpSms, smsProviderConfigured } from "@/lib/sms";
+import { sendOtpWhatsApp } from "@/lib/whatsapp-cloud";
 
 const OTP_TTL_MINUTES = 5;
 
@@ -11,7 +11,7 @@ type IssueOtpResult = {
   code: string;
   expiresAt: Date;
   devOtp: string | null;
-  smsError: string | undefined;
+  sendError: string | undefined;
 };
 
 export async function issueOtp(phone: string, purpose: string = "login"): Promise<IssueOtpResult> {
@@ -21,17 +21,21 @@ export async function issueOtp(phone: string, purpose: string = "login"): Promis
     data: { phone, code, purpose, expiresAt },
   });
 
-  if (!smsProviderConfigured) {
-    // Dev mode: no MSG91 credentials set, so the OTP is handed back to the
-    // client to show on-screen instead of being texted.
-    return { code, expiresAt, devOtp: code, smsError: undefined };
+  const result = await sendOtpWhatsApp(`91${phone}`, code);
+
+  if (result.sent) {
+    return { code, expiresAt, devOtp: null, sendError: undefined };
   }
 
-  const result = await sendOtpSms(phone, code);
-  if (!result.sent) {
-    return { code, expiresAt, devOtp: null, smsError: result.error };
+  if (result.error === "no_provider_configured") {
+    // No WhatsApp OTP template wired up yet — hand the code back to the client
+    // to show on-screen instead of sending it (dev mode).
+    return { code, expiresAt, devOtp: code, sendError: undefined };
   }
-  return { code, expiresAt, devOtp: null, smsError: undefined };
+
+  // A provider is configured but the send failed — don't fall back to showing
+  // the code, since that would leak it in a real deployment.
+  return { code, expiresAt, devOtp: null, sendError: result.error };
 }
 
 export async function verifyOtp(phone: string, code: string, purpose: string = "login") {

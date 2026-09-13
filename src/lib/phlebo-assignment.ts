@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { recordPickupStatus } from "@/lib/pickup-events";
+import { todayIso } from "@/lib/collection-slots";
 
 const OPEN_PHLEBO_STATUSES = ["ASSIGNED", "ACCEPTED", "EN_ROUTE", "ARRIVED"];
 
@@ -54,4 +55,36 @@ export async function assignPhleboToBooking(bookingId: string, excludePhleboId?:
   await recordPickupStatus(bookingId, "ASSIGNED", "system");
 
   return chosen.id;
+}
+
+// Sweeps every still-unassigned own-lab pickup for today or later and runs
+// the normal round-robin assignment on each. Needed because
+// assignPhleboToBooking() otherwise only fires at booking-creation time — so
+// a booking made while every phlebo was offline (e.g. overnight) would stay
+// UNASSIGNED forever, waiting on a person to notice and assign it by hand.
+// Called when a phlebo comes online, and by GET /api/cron/assign-pickups as
+// a safety net. Returns how many pickups it managed to place.
+export async function assignBacklogPickups(): Promise<{ assigned: number; pending: number }> {
+  const ownLabs = await prisma.lab.findMany({ where: { isOwn: true }, select: { id: true } });
+  const ownLabIds = ownLabs.map((l) => l.id);
+  if (ownLabIds.length === 0) return { assigned: 0, pending: 0 };
+
+  const backlog = await prisma.booking.findMany({
+    where: {
+      labId: { in: ownLabIds },
+      phleboStatus: "UNASSIGNED",
+      status: { notIn: ["CANCELLED", "REPORT_READY"] },
+      scheduledDate: { gte: todayIso() },
+    },
+    orderBy: [{ scheduledDate: "asc" }, { createdAt: "asc" }],
+    select: { id: true },
+  });
+
+  let assigned = 0;
+  for (const b of backlog) {
+    const chosen = await assignPhleboToBooking(b.id);
+    if (chosen) assigned++;
+    else break; // no online/enabled phlebo at all — leave the rest queued
+  }
+  return { assigned, pending: backlog.length - assigned };
 }

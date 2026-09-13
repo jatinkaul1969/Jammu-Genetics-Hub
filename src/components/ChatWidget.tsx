@@ -4,10 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { MessageCircle, X, Send, Loader2, Sparkles, ArrowRight } from "lucide-react";
 import { formatInr } from "@/lib/format";
-import { buildWhatsAppLink } from "@/lib/contact";
-
-const WHATSAPP_GREETING =
-  "Hi Jammu Genetics Hub! I have a question about a test/booking.";
+import { buildWhatsAppLink, WHATSAPP_GREETING } from "@/lib/contact";
 
 type ProductChip = { slug: string; name: string; price: number | null };
 type ChatMessage = { role: "user" | "assistant"; content: string; products?: ProductChip[] };

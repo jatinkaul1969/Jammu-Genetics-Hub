@@ -1,28 +1,39 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import { Clock, FlaskConical, Droplets, Utensils, Star, Home as HomeIcon, ShieldCheck, Info } from "lucide-react";
 import { getProductBySlug } from "@/lib/catalog";
 import { formatInr, formatTat, percentOff } from "@/lib/format";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import { getBaseUrl } from "@/lib/site-url";
 import { categoryColorForName } from "@/lib/category-colors";
+import { SERVICEABLE_CITIES } from "@/lib/serviceable-areas";
+import { inheritedShareImages } from "@/lib/seo";
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata(
+  { params }: { params: Promise<{ slug: string }> },
+  parent: ResolvingMetadata
+): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) return {};
 
   const lowest = [...product.prices].sort((a, b) => a.price - b.price)[0];
   const kind = product.type === "PACKAGE" ? "package" : "test";
-  const title = `${product.name} Price in Jammu — Book Online | Compare Thyrocare, Redcliffe, Dr Lal, Metropolis`;
+  // Short — the root layout's title template already appends
+  // "| Jammu Genetics Hub", so a long base title here doubled up and blew
+  // past ~130 characters (Google truncates around 60).
+  const title = `${product.name} Price in Jammu — Book Online`;
   const description = `Book ${product.name} in Jammu starting at ${lowest ? formatInr(lowest.price) : "the lowest price"}. Compare this ${kind}'s price across Jammu Genetics Hub, Thyrocare, Redcliffe Labs, Dr Lal PathLabs and Metropolis, then book free home sample collection. ${product.parameters} parameters, report in ${formatTat(product.reportHours)}.`;
+  const url = `/product/${product.slug}`;
+  const shareImages = await inheritedShareImages(parent);
 
   return {
     title,
     description,
-    alternates: { canonical: `/product/${product.slug}` },
-    openGraph: { title, description, type: "website" },
+    alternates: { canonical: url },
+    openGraph: { title, description, type: "website", url, images: shareImages.openGraph },
+    twitter: { card: "summary_large_image", title, description, images: shareImages.twitter },
   };
 }
 
@@ -76,6 +87,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           )}
           <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">{product.name}</h1>
           <p className="mt-2 text-sm text-ink-soft">{product.description}</p>
+          <p className="mt-2 flex flex-wrap gap-x-1.5 text-xs text-ink-faint">
+            <span>{product.name} price in:</span>
+            {SERVICEABLE_CITIES.map((c) => (
+              <Link key={c.key} href={`/${c.key}/tests/${product.slug}`} className="font-medium text-brand hover:underline">
+                {c.label}
+              </Link>
+            ))}
+          </p>
         </div>
       </div>
 

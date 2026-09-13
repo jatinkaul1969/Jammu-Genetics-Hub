@@ -73,6 +73,16 @@ export async function searchProducts(query: string, categorySlug?: string, type?
   return withLowestPrice(products);
 }
 
+// Every product's slug + category slug — used to statically generate the
+// per-city test-price landing pages (src/app/(site)/[city]/tests/[slug])
+// and the sitemap, without needing a separate DB round trip for each.
+export async function getAllProductSlugs() {
+  return prisma.product.findMany({
+    select: { slug: true, category: { select: { slug: true } } },
+    orderBy: { slug: "asc" },
+  });
+}
+
 export async function getProductBySlug(slug: string) {
   const product = await prisma.product.findUnique({
     where: { slug },

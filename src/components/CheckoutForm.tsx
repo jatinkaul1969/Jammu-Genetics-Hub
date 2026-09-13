@@ -9,6 +9,13 @@ import { formatInr } from "@/lib/format";
 import { LoginModal } from "@/components/LoginModal";
 import { LocationPicker } from "@/components/LocationPicker";
 import {
+  SERVICEABLE_CITIES,
+  COMING_SOON_NOTE,
+  SERVICEABLE_AREAS_HELP,
+  cityForPincode,
+  cityByLabel,
+} from "@/lib/serviceable-areas";
+import {
   getCollectionDates,
   getSlotsForDate,
   isExpressDate,
@@ -75,7 +82,7 @@ export function CheckoutForm({
 
   const [newAddressLabel, setNewAddressLabel] = useState("Home");
   const [newAddressLine, setNewAddressLine] = useState("");
-  const [newCity, setNewCity] = useState("Jammu");
+  const [newCity, setNewCity] = useState(SERVICEABLE_CITIES[0].label);
   const [newPincode, setNewPincode] = useState("");
   const [newLocation, setNewLocation] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -93,6 +100,17 @@ export function CheckoutForm({
 
   const [wantsHardCopy, setWantsHardCopy] = useState(false);
   const [wantsMembership, setWantsMembership] = useState(false);
+
+  // Default the new-address city to whatever the visitor picked in the
+  // header city selector, when it's one we serve.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("jgh_city");
+      if (saved && SERVICEABLE_CITIES.some((c) => c.label === saved)) setNewCity(saved);
+    } catch {
+      // localStorage unavailable — keep the default
+    }
+  }, []);
 
   const days = useMemo(() => getCollectionDates(7), []);
   const slots = useMemo(() => (date ? getSlotsForDate(date) : []), [date]);
@@ -240,9 +258,27 @@ export function CheckoutForm({
       setError("Enter the patient's name and age.");
       return;
     }
-    if (usingNewAddress && (!newAddressLine.trim() || !newCity.trim() || !/^\d{6}$/.test(newPincode))) {
-      setError("Enter a complete address with a valid 6-digit pincode.");
-      return;
+    if (usingNewAddress) {
+      if (!newAddressLine.trim() || !newCity.trim() || !/^\d{6}$/.test(newPincode)) {
+        setError("Enter a complete address with a valid 6-digit pincode.");
+        return;
+      }
+      const pinCity = cityForPincode(newPincode);
+      const chosenCity = cityByLabel(newCity);
+      if (!pinCity) {
+        setError(`Home collection isn't available at pincode ${newPincode} yet — we currently serve ${SERVICEABLE_AREAS_HELP}.`);
+        return;
+      }
+      if (chosenCity && pinCity.key !== chosenCity.key) {
+        setError(`Pincode ${newPincode} doesn't look like it's in ${chosenCity.label}. Pick the matching city or check the pincode.`);
+        return;
+      }
+    } else {
+      const saved = addresses.find((a) => a.id === selectedAddressId);
+      if (saved && !cityForPincode(saved.pincode)) {
+        setError(`We no longer collect at ${saved.label} (pincode ${saved.pincode}) — we currently serve ${SERVICEABLE_AREAS_HELP}. Add an address in one of those areas.`);
+        return;
+      }
     }
     if (!date || !slot) {
       setError("Pick a collection date and time slot.");
@@ -387,7 +423,14 @@ export function CheckoutForm({
                   <input value={newAddressLabel} onChange={(e) => setNewAddressLabel(e.target.value)} placeholder="Home / Office" className="input" />
                 </Field>
                 <Field label="City">
-                  <input value={newCity} onChange={(e) => setNewCity(e.target.value)} className="input" />
+                  <select value={newCity} onChange={(e) => setNewCity(e.target.value)} className="input">
+                    {SERVICEABLE_CITIES.map((c) => (
+                      <option key={c.key} value={c.label}>
+                        {c.label}
+                      </option>
+                    ))}
+                    <option disabled>{COMING_SOON_NOTE}…</option>
+                  </select>
                 </Field>
                 <Field label="Pincode">
                   <input
@@ -397,6 +440,11 @@ export function CheckoutForm({
                     placeholder="180001"
                     className="input"
                   />
+                  {newPincode.length === 6 && !cityForPincode(newPincode) && (
+                    <span className="mt-1 block text-xs text-accent">
+                      Not in our home-collection area yet — we serve {SERVICEABLE_AREAS_HELP}.
+                    </span>
+                  )}
                 </Field>
               </div>
               <Field label="Address">

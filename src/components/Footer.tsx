@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ShieldCheck, Home, Clock, Award, Mail, Phone } from "lucide-react";
-import { CONTACT_EMAIL, CONTACT_PHONES } from "@/lib/contact";
+import { ShieldCheck, Home, Clock, Award, Mail, Phone, MessageCircle } from "lucide-react";
+import { CONTACT_EMAIL, CONTACT_PHONES, WHATSAPP_GREETING, buildWhatsAppLink } from "@/lib/contact";
 import { getLabs } from "@/lib/catalog";
+import { SERVICEABLE_CITIES } from "@/lib/serviceable-areas";
 
 export async function Footer() {
   const labs = await getLabs();
@@ -23,6 +24,13 @@ export async function Footer() {
             <li><Link href="/" className="hover:text-brand">About Jammu Genetics Hub</Link></li>
             <li><Link href="/search" className="hover:text-brand">All Tests &amp; Packages</Link></li>
             <li><Link href="/account/bookings" className="hover:text-brand">My Bookings</Link></li>
+            {SERVICEABLE_CITIES.map((c) => (
+              <li key={c.key}>
+                <Link href={`/${c.key}`} className="hover:text-brand">
+                  Lab tests in {c.label}
+                </Link>
+              </li>
+            ))}
           </ul>
         </div>
 
@@ -38,6 +46,16 @@ export async function Footer() {
         <div>
           <p className="mb-3 font-display text-sm font-semibold text-ink">Contact us</p>
           <ul className="space-y-2 text-sm text-ink-soft">
+            <li>
+              <a
+                href={buildWhatsAppLink(WHATSAPP_GREETING)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 hover:text-brand"
+              >
+                <MessageCircle size={14} className="shrink-0 text-success" /> Chat on WhatsApp
+              </a>
+            </li>
             <li>
               <a href={`mailto:${CONTACT_EMAIL}`} className="flex items-center gap-1.5 hover:text-brand">
                 <Mail size={14} className="shrink-0 text-cat-blue" /> {CONTACT_EMAIL}

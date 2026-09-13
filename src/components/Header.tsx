@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ShoppingCart, User, MapPin, Menu, X, LogOut, ClipboardList } from "lucide-react";
+import { ShoppingCart, User, Menu, X, LogOut, ClipboardList } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
 import { LoginModal } from "@/components/LoginModal";
 import { SearchBox } from "@/components/SearchBox";
+import { CitySelector } from "@/components/CitySelector";
 
 export function Header() {
   const router = useRouter();
@@ -48,10 +49,7 @@ export function Header() {
           </span>
         </Link>
 
-        <div className="hidden items-center gap-1 rounded-lg border border-border bg-bg px-2.5 py-1.5 text-xs text-ink-soft md:flex">
-          <MapPin size={14} className="text-brand" />
-          Jammu
-        </div>
+        <CitySelector />
 
         <div className="hidden flex-1 md:block">
           <SearchBox />

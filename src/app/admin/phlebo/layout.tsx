@@ -24,6 +24,9 @@ export default async function PhleboLayout({ children }: { children: React.React
           <Link href="/admin/phlebo/book-for-customer" className="text-ink-soft hover:text-brand">
             Price check &amp; booking
           </Link>
+          <Link href="/admin/phlebo/account" className="text-ink-soft hover:text-brand">
+            My account
+          </Link>
           <StaffOnlineToggle initialOnline={phlebo.online} url="/api/phlebo/online" onLabel="Online — receiving pickups" />
           <AdminLogoutButton logoutUrl="/api/phlebo/logout" redirectUrl="/admin/phlebo-login" />
         </nav>

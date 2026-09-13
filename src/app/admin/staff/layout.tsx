@@ -44,17 +44,14 @@ export default async function StaffLayout({ children }: { children: React.ReactN
               Book for Customer
             </Link>
           )}
+          <Link href="/admin/staff/account" className="text-ink-soft hover:text-brand">
+            My account
+          </Link>
           <StaffOnlineToggle initialOnline={staff.online} />
           <AdminLogoutButton logoutUrl="/api/staff/logout" redirectUrl="/admin/staff-login" />
         </nav>
       </div>
-      {permissions.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-surface p-10 text-center text-sm text-ink-soft">
-          Your account doesn&apos;t have any areas enabled yet — ask an admin to grant access from Team.
-        </div>
-      ) : (
-        children
-      )}
+      {children}
     </div>
   );
 }

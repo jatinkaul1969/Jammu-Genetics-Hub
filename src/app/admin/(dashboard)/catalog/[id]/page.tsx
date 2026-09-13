@@ -47,7 +47,14 @@ export default async function AdminProductEditPage({ params }: { params: Promise
 
         <ProductPriceEditor
           productId={product.id}
-          labs={labs.map((l) => ({ id: l.id, name: l.name, shortName: l.shortName, isOwn: l.isOwn }))}
+          labs={labs.map((l) => ({
+            id: l.id,
+            name: l.name,
+            shortName: l.shortName,
+            isOwn: l.isOwn,
+            colorHex: l.colorHex,
+            logoInitials: l.logoInitials,
+          }))}
           prices={product.prices.map((p) => ({ labId: p.labId, price: p.price, mrp: p.mrp, testCode: p.testCode }))}
         />
       </div>
