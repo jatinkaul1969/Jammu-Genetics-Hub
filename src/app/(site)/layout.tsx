@@ -84,6 +84,14 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   },
+  // Proves ownership for Google Search Console (HTML tag method) — this is
+  // meant to be public, it's not a secret. Once verified, submit
+  // sitemap.xml and use URL Inspection > Request Indexing on the key pages
+  // (homepage, /jammu, /mumbai, the NIPT/double-marker city pages) — Google
+  // doesn't index a brand-new site on its own for weeks/months otherwise.
+  verification: {
+    google: "Zwgiiliq_3Bs1ApG4fXDxsYkYtSLLJtcwS36qnvkV7w",
+  },
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
