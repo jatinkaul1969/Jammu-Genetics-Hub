@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata, ResolvingMetadata } from "next";
 import { Clock, FlaskConical, Droplets, Utensils, Home as HomeIcon, HelpCircle, ArrowRight } from "lucide-react";
-import { getProductBySlug, getAllProductSlugs } from "@/lib/catalog";
+import { getProductBySlug, getAllProductSlugs, getProductsByCategory } from "@/lib/catalog";
 import { formatInr, formatTat, percentOff } from "@/lib/format";
 import { getBaseUrl } from "@/lib/site-url";
 import { categoryColorForName } from "@/lib/category-colors";
@@ -100,6 +100,14 @@ export default async function CityTestPage({
   const catColor = categoryColorForName(product.category.name);
   const baseUrl = await getBaseUrl();
   const faqs = buildFaq(product, city.label, lowest.price, lowest.lab.name);
+
+  // A few sibling tests in the same category, so this page links deeper
+  // into the site instead of only back out to /product and the city hub —
+  // more internal paths for Google to find and crawl, and a next step for
+  // a reader who came here for one specific test.
+  const related = (await getProductsByCategory(product.category.slug))
+    .filter((p) => p.slug !== product.slug)
+    .slice(0, 4);
 
   const testJsonLd = {
     "@context": "https://schema.org",
@@ -212,6 +220,26 @@ export default async function CityTestPage({
             ))}
           </div>
         </div>
+
+        {related.length > 0 && (
+          <div className="mt-10">
+            <h2 className="mb-3 font-display text-lg font-semibold text-ink">
+              Other {product.category.name} tests in {city.label}
+            </h2>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {related.map((r) => (
+                <Link
+                  key={r.slug}
+                  href={`/${city.key}/tests/${r.slug}`}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm hover:border-brand"
+                >
+                  <span className="text-ink">{r.name}</span>
+                  <span className="font-mono text-xs font-medium text-brand-dark">{formatInr(r.lowestPrice)}+</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-border pt-6 text-sm">
           <span className="text-ink-faint">{product.name} is also available in:</span>
