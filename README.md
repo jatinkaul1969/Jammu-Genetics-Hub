@@ -669,11 +669,36 @@ with fabricated prices at the original five labs. The seed now `deleteMany`s
 any price row not in the new real partner list before upserting, so no stale
 fabricated price survives re-seeding.
 
-**Known open item**: the original ask described Lilac Insights branding NIPT
-as "InsightT" — the source file doesn't contain that name anywhere; Lilac's
-actual NIPT rows are testCode `T111` ("NIPT Basic Sequencing") and `T112`
-("NIPT Advance Sequencing"), which is what's seeded instead. Worth
-double-checking against Lilac's current price list if that naming matters.
+### Full partner catalogs (Lilac Insights + Redcliffe oncology)
+
+The 25 curated tests above are only the headline products. The rest of the
+specialty catalog — Lilac's InsighT NIPT range, Evico pregnancy screening,
+CarIeM newborn screening, Altum microarrays, ConcepT, MLPA/gene panels, the
+whole Oncoinsights / Oncoprecise oncology range, and Redcliffe's oncology
+price list (FISH, PCR, NGS, flow cytometry, IHC, histopathology, tumor
+markers) — is imported by
+[`prisma/import-lab-catalogs.ts`](prisma/import-lab-catalogs.ts) from
+[`lilac-catalog-data.ts`](prisma/lilac-catalog-data.ts) (all 1,455 Lilac rows,
+public MRP only — B2B rates are deliberately not committed) and
+[`redcliffe-oncology-data.ts`](prisma/redcliffe-oncology-data.ts) (316 rows).
+
+```bash
+npx tsx --env-file=.env prisma/import-lab-catalogs.ts           # dry run
+npx tsx --env-file=.env prisma/import-lab-catalogs.ts --apply   # write
+```
+
+It is additive and idempotent: it only creates/updates the products it owns
+and never touches routine tests or other labs' prices. The partner lists only
+carry a code, name and price, so the category, "what is it", who-it's-for and
+limits text comes from [`src/lib/test-knowledge.ts`](src/lib/test-knowledge.ts)
+(rules read off the test name — a method × disease-area model for oncology,
+named families for genetics). A test that matches no rule is **not**
+imported, and routine commodity tests (CBC, TSH…) in the same lists are
+skipped. The same module powers the landing-page sections, so the wording on
+the site and in the DB can't drift. Imported tests show the partner's list
+price (MRP); set Jammu Genetics Hub's own price per test in the admin.
+The landing pages are `/[city]/genetic-tests`, `/[city]/oncology-tests` and
+their per-group pages; `/[city]/tests/[slug]` renders on demand for any test.
 
 ## Known gaps
 

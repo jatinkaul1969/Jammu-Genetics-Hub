@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata, ResolvingMetadata } from "next";
-import { Clock, FlaskConical, Droplets, Utensils, Star, Home as HomeIcon, ShieldCheck, Info } from "lucide-react";
+import { Clock, FlaskConical, Droplets, Utensils, Star, Home as HomeIcon, ShieldCheck, Info, MessageCircle } from "lucide-react";
 import { getProductBySlug } from "@/lib/catalog";
 import { formatInr, formatTat, percentOff } from "@/lib/format";
 import { AddToCartButton } from "@/components/AddToCartButton";
@@ -9,6 +9,8 @@ import { getBaseUrl } from "@/lib/site-url";
 import { categoryColorForName } from "@/lib/category-colors";
 import { SERVICEABLE_CITIES } from "@/lib/serviceable-areas";
 import { inheritedShareImages } from "@/lib/seo";
+import { contentForProduct } from "@/lib/genetics-content";
+import { buildWhatsAppLink } from "@/lib/contact";
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> },
@@ -24,7 +26,7 @@ export async function generateMetadata(
   // "| Jammu Genetics Hub", so a long base title here doubled up and blew
   // past ~130 characters (Google truncates around 60).
   const title = `${product.name} Price in Jammu — Book Online`;
-  const description = `Book ${product.name} in Jammu starting at ${lowest ? formatInr(lowest.price) : "the lowest price"}. Compare this ${kind}'s price across Jammu Genetics Hub, Thyrocare, Redcliffe Labs, Dr Lal PathLabs and Metropolis, then book free home sample collection. ${product.parameters} parameters, report in ${formatTat(product.reportHours)}.`;
+  const description = `Book ${product.name} in Jammu starting at ${lowest ? formatInr(lowest.price) : "the lowest price"}. ${product.prices.length > 1 ? `Compare this ${kind}'s price across ${product.prices.map((x) => x.lab.isOwn ? 'Jammu Genetics Hub' : x.lab.name).slice(0, 5).join(', ')}` : `Price from ${product.prices[0]?.lab.name ?? 'our partner lab'}`}, then book with Jammu Genetics Hub. ${product.parameters} parameters, report in ${formatTat(product.reportHours)}.`;
   const url = `/product/${product.slug}`;
   const shareImages = await inheritedShareImages(parent);
 
@@ -47,6 +49,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const lowestPrice = sortedPrices[0]?.price ?? 0;
   const baseUrl = await getBaseUrl();
   const catColor = categoryColorForName(product.category.name);
+  // Tests whose sample is a tissue block, embryo biopsy, amniotic fluid or a
+  // newborn heel-prick are not a routine home blood draw — they can't go
+  // through the home-collection cart, so we route them to the team instead.
+  const arranged = contentForProduct(product)?.collection === "arrange";
+  const arrangeHref = buildWhatsAppLink(`Hi Jammu Genetics Hub! I'd like to arrange ${product.name}.`);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -109,7 +116,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           color={catColor}
         />
         <Spec icon={<ShieldCheck size={16} />} label="For" value={product.gender === "both" ? "All genders" : product.gender} color={catColor} />
-        <Spec icon={<HomeIcon size={16} />} label="Collection" value="Free at home" color={catColor} />
+        <Spec icon={<HomeIcon size={16} />} label="Collection" value={arranged ? "Arranged with our team" : "Free at home"} color={catColor} />
       </div>
 
       {product.about && (
@@ -143,8 +150,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <div>
         <h2 className="mb-1 font-display text-lg font-semibold text-ink">Compare prices across labs</h2>
         <p className="mb-4 text-sm text-ink-soft">
-          Same test, {product.prices.length} labs — pick the one you want to book with. All include free home
-          sample collection.
+          {arranged
+            ? "This test needs a sample that is not a routine home blood draw — message us and we will arrange collection and coordinate with the lab."
+            : product.prices.length > 1
+              ? `Same test, ${product.prices.length} labs — pick the one you want to book with. All include free home sample collection.`
+              : "Price from the partner laboratory that performs this test. Free home sample collection."}
         </p>
 
         <div className="overflow-hidden rounded-xl border border-border bg-surface">
@@ -207,20 +217,31 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 </p>
 
                 <div className="flex justify-start sm:justify-end">
-                  <AddToCartButton
-                    item={{
-                      productId: product.id,
-                      productSlug: product.slug,
-                      productName: product.name,
-                      productType: product.type,
-                      labId: p.labId,
-                      labSlug: p.lab.slug,
-                      labName: p.lab.name,
-                      labShortName: p.lab.shortName,
-                      price: p.price,
-                      mrp: p.mrp,
-                    }}
-                  />
+                  {arranged ? (
+                    <a
+                      href={arrangeHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1.5 rounded-lg border border-brand px-3 py-2 text-xs font-semibold text-brand hover:bg-brand-soft"
+                    >
+                      <MessageCircle size={14} /> Arrange via WhatsApp
+                    </a>
+                  ) : (
+                    <AddToCartButton
+                      item={{
+                        productId: product.id,
+                        productSlug: product.slug,
+                        productName: product.name,
+                        productType: product.type,
+                        labId: p.labId,
+                        labSlug: p.lab.slug,
+                        labName: p.lab.name,
+                        labShortName: p.lab.shortName,
+                        price: p.price,
+                        mrp: p.mrp,
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             );

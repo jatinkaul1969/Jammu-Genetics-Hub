@@ -108,11 +108,12 @@ export default async function CityHubPage({ params }: { params: Promise<{ city: 
 
         <section className="mt-8 rounded-2xl border border-brand/30 bg-brand-soft/50 p-5 sm:p-6">
           <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-ink">
-            <Dna size={18} className="text-brand" /> Genetic testing in {city.label}
+            <Dna size={18} className="text-brand" /> Genetic &amp; oncology testing in {city.label}
           </h2>
           <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink-soft">
             NIPT, double marker, newborn screening, hereditary cancer, whole exome sequencing, carrier
-            screening and more — one place to compare and book, with BGCI-certified geneticists to guide you.
+            screening and 600+ oncology (cancer) tests — one place to compare and book, with BGCI-certified
+            geneticists to guide you.
           </p>
           <div className="mt-3 flex flex-wrap gap-2.5">
             <Link
@@ -120,6 +121,12 @@ export default async function CityHubPage({ params }: { params: Promise<{ city: 
               className="flex items-center gap-1 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
             >
               All genetic tests <ArrowRight size={14} />
+            </Link>
+            <Link
+              href={`/${city.key}/oncology-tests`}
+              className="rounded-lg border border-brand bg-surface px-4 py-2 text-sm font-semibold text-brand hover:bg-brand-soft"
+            >
+              Oncology tests
             </Link>
             <Link
               href={`/${city.key}/genetic-counselling`}

@@ -14,8 +14,9 @@ import {
   Info,
   Users,
   Dna,
+  Microscope,
 } from "lucide-react";
-import { getProductBySlug, getAllProductSlugs, getProductsByCategory, getProductsBySlugs } from "@/lib/catalog";
+import { getProductBySlug, getProductsByCategory, getProductsBySlugs } from "@/lib/catalog";
 import { formatInr, formatTat, percentOff } from "@/lib/format";
 import { getBaseUrl } from "@/lib/site-url";
 import { categoryColorForName } from "@/lib/category-colors";
@@ -23,26 +24,22 @@ import { SERVICEABLE_CITIES, cityByKey } from "@/lib/serviceable-areas";
 import { DIAGNOSTIC_FEE } from "@/lib/collection-slots";
 import { inheritedShareImages } from "@/lib/seo";
 import { buildWhatsAppLink } from "@/lib/contact";
-import {
-  GENETICIST_CREDENTIAL,
-  GENETICS_CONTENT,
-  geneticsContentFor,
-  type GeneticTestContent,
-} from "@/lib/genetics-content";
+import { GENETICIST_CREDENTIAL, GENETICS_SLUGS, contentForProduct, type TestContent } from "@/lib/genetics-content";
+import { HUBS, hubPath } from "@/lib/hub-config";
+import { getTestIndex } from "@/lib/test-index";
+import { groupByName } from "@/lib/test-knowledge";
 import { GeneticCounsellingBanner } from "@/components/GeneticCounsellingBanner";
 
-export async function generateStaticParams() {
-  const products = await getAllProductSlugs();
-  return SERVICEABLE_CITIES.flatMap((city) =>
-    products.map((p) => ({ city: city.key, testSlug: p.slug }))
-  );
+// Only the hand-written genetic tests are pre-rendered at build time. Every
+// other test (the ~1,300 imported partner-lab tests, plus anything added in the
+// admin later) renders on first request — so a new test gets its page without
+// a redeploy. The page itself 404s unknown cities / tests / unpriced tests,
+// so this can't be used to mint pages for places we don't serve.
+export function generateStaticParams() {
+  return SERVICEABLE_CITIES.flatMap((city) => GENETICS_SLUGS.map((slug) => ({ city: city.key, testSlug: slug })));
 }
 
-// Only real (city × test) combinations get a page. No find-and-replace city
-// pages for places we don't actually serve — that's both a Google spam-
-// policy risk and a real liability for a booking business (see AGENTS
-// guidance / project notes on serviceable-areas.ts).
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 type Product = NonNullable<Awaited<ReturnType<typeof getProductBySlug>>>;
 
@@ -59,27 +56,22 @@ function buildFaq(
   cityLabel: string,
   lowestPrice: number,
   lowestLabName: string,
-  genetics: GeneticTestContent | null
+  content: TestContent | null
 ) {
   const kind = product.type === "PACKAGE" ? "package" : "test";
-  const homeCollection = !genetics || genetics.collection === "home";
+  const homeCollection = !content || content.collection === "home";
+  const nLabs = product.prices.length;
 
   const faqs: { q: string; a: string }[] = [];
 
-  if (genetics) {
-    faqs.push({
-      q: `What is ${product.name} used for?`,
-      a: genetics.whyDone.join(" "),
-    });
-    faqs.push({
-      q: `Who should consider ${product.name}?`,
-      a: genetics.whoFor.join(" "),
-    });
+  if (content) {
+    faqs.push({ q: `What is ${product.name} used for?`, a: content.whyDone.join(" ") });
+    faqs.push({ q: `Who should consider ${product.name}?`, a: content.whoFor.join(" ") });
   }
 
   faqs.push({
     q: `How much does ${product.name} cost in ${cityLabel}?`,
-    a: `${product.name} costs ${formatInr(lowestPrice)} onwards in ${cityLabel}, compared across ${product.prices.length} lab${product.prices.length === 1 ? "" : "s"} — the lowest price is at ${lowestLabName}.${homeCollection ? ` Home sample collection is available; a flat ${formatInr(DIAGNOSTIC_FEE)} diagnostic fee applies per visit.` : ""}`,
+    a: `${product.name} costs ${formatInr(lowestPrice)} onwards in ${cityLabel}${nLabs > 1 ? `, compared across ${nLabs} labs — the lowest price is at ${lowestLabName}` : ` through ${lowestLabName}`}.${homeCollection ? ` Home sample collection is available; a flat ${formatInr(DIAGNOSTIC_FEE)} diagnostic fee applies per visit.` : ""}`,
   });
 
   faqs.push(
@@ -114,18 +106,23 @@ function buildFaq(
     });
   }
 
-  if (genetics) {
-    faqs.push({
-      q: `Are there limitations to ${product.name}?`,
-      a: genetics.goodToKnow.join(" "),
-    });
-    faqs.push({
-      q: `Can I speak to a geneticist about ${product.name} in ${cityLabel}?`,
-      a: `Yes. Jammu Genetics Hub helps patients connect with ${GENETICIST_CREDENTIAL}, who can explain whether this test is right for you and help you understand the result. Message us on WhatsApp or call to get started. This page is general information and not a substitute for medical advice.`,
-    });
+  if (content) {
+    faqs.push({ q: `Are there limitations to ${product.name}?`, a: content.goodToKnow.join(" ") });
+
+    if (content.hub === "genetic") {
+      faqs.push({
+        q: `Can I speak to a geneticist about ${product.name} in ${cityLabel}?`,
+        a: `Yes. Jammu Genetics Hub helps patients connect with ${GENETICIST_CREDENTIAL}, who can explain whether this test is right for you and help you understand the result. Message us on WhatsApp or call to get started. This page is general information and not a substitute for medical advice.`,
+      });
+    } else {
+      faqs.push({
+        q: `Do I need a doctor's referral for ${product.name}?`,
+        a: `${product.name} is normally ordered by an oncologist, hematologist or pathologist for a patient with a suspected or confirmed cancer. This page explains what the test is for, but whether it is right for you is a decision to make with your doctor. Message us on WhatsApp if you need help with sample logistics or booking.`,
+      });
+    }
     faqs.push({
       q: `Does Jammu Genetics Hub run its own laboratory?`,
-      a: `No. Jammu Genetics Hub is a one-stop booking and comparison platform for genetic and diagnostic tests — your sample is processed by one of our accredited partner laboratories, and we help with booking, sample collection and connecting you with a geneticist.`,
+      a: `No. Jammu Genetics Hub is a one-stop booking and comparison platform for genetic, oncology and diagnostic tests — your sample is processed by one of our accredited partner laboratories, and we help with booking, sample collection and getting your report to you.`,
     });
   }
 
@@ -141,25 +138,26 @@ export async function generateMetadata(
   const product = city ? await getProductBySlug(testSlug) : null;
   if (!city || !product) return {};
 
-  const genetics = geneticsContentFor(product.slug);
+  const content = contentForProduct(product);
   const lowest = [...product.prices].sort((a, b) => a.price - b.price)[0];
-  const title = genetics
-    ? `${product.name} in ${city.label}: Price & Uses`
-    : `${product.name} Price in ${city.label}`;
-  const description = genetics
-    ? `${product.name} in ${city.label}: what it is, who needs it & price from ${lowest ? formatInr(lowest.price) : "—"}. Book with Jammu Genetics Hub, with guidance from ${GENETICIST_CREDENTIAL}.`
-    : `${product.name} in ${city.label} costs ${lowest ? formatInr(lowest.price) : "—"} onwards with free home sample collection, reports in ${formatTat(product.reportHours)}. Compare ${product.prices.length} labs and book online.`;
+  const price = lowest ? formatInr(lowest.price) : "—";
+  const title = content ? `${product.name} in ${city.label}: Price & Uses` : `${product.name} Price in ${city.label}`;
+  const description = content
+    ? content.hub === "genetic"
+      ? `${product.name} in ${city.label}: what it is, who needs it & price from ${price}. Book with Jammu Genetics Hub, with guidance from ${GENETICIST_CREDENTIAL}.`
+      : `${product.name} in ${city.label}: what it is used for, sample needed & price from ${price}. Book through Jammu Genetics Hub — genetic and oncology tests in one place.`
+    : `${product.name} in ${city.label} costs ${price} onwards with free home sample collection, reports in ${formatTat(product.reportHours)}. Compare ${product.prices.length} labs and book online.`;
   const url = `/${city.key}/tests/${product.slug}`;
   const shareImages = await inheritedShareImages(parent);
 
   return {
     title,
     description,
-    keywords: genetics
+    keywords: content
       ? [
-          ...genetics.aliases.map((a) => `${a} in ${city.label}`),
+          ...content.aliases.slice(0, 6).map((a) => `${a} in ${city.label}`),
           `${product.name} price in ${city.label}`,
-          `genetic testing ${city.label}`,
+          content.hub === "genetic" ? `genetic testing ${city.label}` : `oncology test ${city.label}`,
         ]
       : undefined,
     alternates: { canonical: url },
@@ -184,25 +182,30 @@ export default async function CityTestPage({
   const lowest = sortedPrices[0];
   if (!lowest) notFound(); // no lab prices this test yet — nothing honest to show
 
-  const genetics = geneticsContentFor(product.slug);
-  const homeCollection = !genetics || genetics.collection === "home";
+  const content = contentForProduct(product);
+  const hub = content?.hub ?? null;
+  const hubCfg = hub ? HUBS[hub] : null;
+  const group = content ? groupByName(content.group) : undefined;
+  const homeCollection = !content || content.collection === "home";
+  const nLabs = sortedPrices.length;
 
   const highestMrp = Math.max(...sortedPrices.map((p) => p.mrp));
   const off = percentOff(highestMrp, lowest.price);
   const catColor = categoryColorForName(product.category.name);
   const baseUrl = await getBaseUrl();
-  const faqs = buildFaq(product, city.label, lowest.price, lowest.lab.name, genetics);
+  const faqs = buildFaq(product, city.label, lowest.price, lowest.lab.name, content);
 
   // Sibling tests, so this page links deeper into the site instead of only
-  // back out to /product and the city hub. For a genetics test, "related"
-  // means the same group (e.g. other prenatal screens), not just the same
-  // DB category.
+  // back out to /product and the city hub. For a genetic / oncology test,
+  // "related" means the same group (e.g. other prenatal screens, other
+  // leukemia tests), not just the same DB category.
   let related: { slug: string; name: string; lowestPrice: number }[];
-  if (genetics) {
-    const siblingSlugs = Object.entries(GENETICS_CONTENT)
-      .filter(([slug, c]) => c.group === genetics.group && slug !== product.slug)
-      .map(([slug]) => slug);
-    related = (await getProductsBySlugs(siblingSlugs)).slice(0, 6);
+  if (content) {
+    const idx = await getTestIndex();
+    const siblings = (idx.byGroup.get(content.group) ?? []).filter((e) => e.slug !== product.slug).slice(0, 6);
+    related = (await getProductsBySlugs(siblings.map((e) => e.slug)))
+      .filter((p) => p.lowestPrice > 0)
+      .sort((a, b) => siblings.findIndex((s) => s.slug === a.slug) - siblings.findIndex((s) => s.slug === b.slug));
   } else {
     related = (await getProductsByCategory(product.category.slug))
       .filter((p) => p.slug !== product.slug)
@@ -217,7 +220,7 @@ export default async function CityTestPage({
     "@context": "https://schema.org",
     "@type": "MedicalTest",
     name: product.name,
-    ...(genetics ? { alternateName: genetics.aliases } : {}),
+    ...(content ? { alternateName: content.aliases } : {}),
     description: product.about || product.description,
     url: `${baseUrl}/${city.key}/tests/${product.slug}`,
     offers: {
@@ -240,41 +243,25 @@ export default async function CityTestPage({
     })),
   };
 
+  const crumbs: { name: string; item: string }[] = [
+    { name: "Home", item: baseUrl },
+    { name: city.label, item: `${baseUrl}/${city.key}` },
+  ];
+  if (hubCfg && hub) {
+    crumbs.push({ name: hubCfg.label, item: `${baseUrl}${hubPath(city.key, hub)}` });
+    if (group) crumbs.push({ name: group.name, item: `${baseUrl}${hubPath(city.key, group.hubs[0], group.slug)}` });
+  }
+  crumbs.push({ name: product.name, item: `${baseUrl}/${city.key}/tests/${product.slug}` });
   const breadcrumbLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: baseUrl },
-      { "@type": "ListItem", position: 2, name: city.label, item: `${baseUrl}/${city.key}` },
-      ...(genetics
-        ? [
-            {
-              "@type": "ListItem",
-              position: 3,
-              name: "Genetic tests",
-              item: `${baseUrl}/${city.key}/genetic-tests`,
-            },
-            {
-              "@type": "ListItem",
-              position: 4,
-              name: product.name,
-              item: `${baseUrl}/${city.key}/tests/${product.slug}`,
-            },
-          ]
-        : [
-            {
-              "@type": "ListItem",
-              position: 3,
-              name: product.name,
-              item: `${baseUrl}/${city.key}/tests/${product.slug}`,
-            },
-          ]),
-    ],
+    itemListElement: crumbs.map((c, i) => ({ "@type": "ListItem", position: i + 1, name: c.name, item: c.item })),
   };
 
   const stepSample = homeCollection
     ? `A trained phlebotomist visits your address in ${city.label} at the slot you choose — no clinic visit needed.`
     : `Your ${product.sampleType.toLowerCase()} sample is arranged with our team — message us and we'll guide you on where and when it can be collected in ${city.label}.`;
+  const HubIcon = hub === "oncology" ? Microscope : Dna;
 
   return (
     <>
@@ -288,10 +275,18 @@ export default async function CityTestPage({
           {" / "}
           <Link href={`/${city.key}`} className="hover:text-brand">{city.label}</Link>
           {" / "}
-          {genetics && (
+          {hubCfg && hub && (
             <>
-              <Link href={`/${city.key}/genetic-tests`} className="hover:text-brand">Genetic tests</Link>
+              <Link href={hubPath(city.key, hub)} className="hover:text-brand">{hubCfg.label}</Link>
               {" / "}
+              {group && (
+                <>
+                  <Link href={hubPath(city.key, group.hubs[0], group.slug)} className="hover:text-brand">
+                    {group.name}
+                  </Link>
+                  {" / "}
+                </>
+              )}
             </>
           )}
           <span className="text-ink-soft">{product.name}</span>
@@ -301,15 +296,15 @@ export default async function CityTestPage({
           <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${catColor.bg} ${catColor.text}`}>
             {product.category.name}
           </span>
-          {genetics && (
+          {content && (
             <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-medium text-brand-dark">
-              <Dna size={12} /> {genetics.group}
+              <HubIcon size={12} /> {content.group}
             </span>
           )}
         </div>
 
         <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">
-          {genetics ? `${product.name} in ${city.label}` : `${product.name} Price in ${city.label}`}
+          {content ? `${product.name} in ${city.label}` : `${product.name} Price in ${city.label}`}
         </h1>
 
         {/* First sentence states the price plainly — this is the line search
@@ -317,16 +312,25 @@ export default async function CityTestPage({
         <p className="mt-3 text-base leading-relaxed text-ink">
           <strong>{product.name}</strong> in <strong>{city.label}</strong> costs{" "}
           <span className="font-mono font-semibold text-brand-dark">{formatInr(lowest.price)}</span> onwards
-          {off > 0 && <> ({off}% off MRP)</>} — compared across {sortedPrices.length} lab
-          {sortedPrices.length === 1 ? "" : "s"}
-          {homeCollection ? ", with free home sample collection" : ""} and reports in{" "}
-          {formatTat(product.reportHours)}.
+          {off > 0 && <> ({off}% off MRP)</>}
+          {nLabs > 1 ? <> — compared across {nLabs} labs</> : <> — through {lowest.lab.name}</>}
+          {homeCollection ? ", with free home sample collection" : ""} and reports in {formatTat(product.reportHours)}.
         </p>
-        {genetics && (
+        {content && (
           <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-            Book through <strong>Jammu Genetics Hub</strong> — one place for every genetic test — and get
-            guidance from {GENETICIST_CREDENTIAL} before and after your test. Your sample is processed by an
-            accredited partner laboratory.
+            {hub === "genetic" ? (
+              <>
+                Book through <strong>Jammu Genetics Hub</strong> — one place for every genetic test — and get guidance
+                from {GENETICIST_CREDENTIAL} before and after your test. Your sample is processed by an accredited
+                partner laboratory.
+              </>
+            ) : (
+              <>
+                Book through <strong>Jammu Genetics Hub</strong> — one place for genetic and oncology (cancer) tests.
+                Your sample is processed by an accredited partner laboratory, and we help with booking and sample
+                logistics.
+              </>
+            )}
           </p>
         )}
 
@@ -350,7 +354,7 @@ export default async function CityTestPage({
               : `Sample collection arranged with our team in ${city.label}`}
           </span>
           <div className="ml-auto flex flex-wrap gap-2">
-            {genetics && (
+            {content && (
               <a
                 href={whatsappHref}
                 target="_blank"
@@ -364,8 +368,7 @@ export default async function CityTestPage({
               href={`/product/${product.slug}`}
               className="flex items-center gap-1 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
             >
-              Compare all {sortedPrices.length} lab{sortedPrices.length === 1 ? "" : "s"} &amp; book{" "}
-              <ArrowRight size={14} />
+              {nLabs > 1 ? `Compare all ${nLabs} labs & book` : "View price & book"} <ArrowRight size={14} />
             </Link>
           </div>
         </div>
@@ -373,23 +376,23 @@ export default async function CityTestPage({
         {product.about && (
           <div className="mt-8">
             <h2 className="mb-2 font-display text-lg font-semibold text-ink">
-              {genetics ? `What is ${product.name}?` : `About this ${product.type === "PACKAGE" ? "package" : "test"}`}
+              {content ? `What is ${product.name}?` : `About this ${product.type === "PACKAGE" ? "package" : "test"}`}
             </h2>
             <p className="text-sm leading-relaxed text-ink-soft">{product.about}</p>
           </div>
         )}
 
-        {genetics && (
+        {content && (
           <>
             <ListSection
               icon={<CircleCheck size={18} className="text-brand" />}
               title={`Why is ${product.name} done?`}
-              items={genetics.whyDone}
+              items={content.whyDone}
             />
             <ListSection
               icon={<Users size={18} className="text-brand" />}
               title={`Who may be advised to take ${product.name}?`}
-              items={genetics.whoFor}
+              items={content.whoFor}
             />
 
             <section className="mt-10">
@@ -397,8 +400,9 @@ export default async function CityTestPage({
                 {product.name} price in {city.label}
               </h2>
               <p className="mb-3 text-sm text-ink-soft">
-                The same test, priced by each laboratory that offers it. Book through Jammu Genetics Hub for
-                one place to compare, book and follow up.
+                {nLabs > 1
+                  ? "The same test, priced by each laboratory that offers it. Book through Jammu Genetics Hub for one place to compare, book and follow up."
+                  : "Price from the partner laboratory that performs this test. Book through Jammu Genetics Hub for one place to book and follow up."}
               </p>
               <div className="overflow-x-auto rounded-xl border border-border">
                 <table className="w-full min-w-[420px] text-left text-sm">
@@ -414,7 +418,7 @@ export default async function CityTestPage({
                       <tr key={p.id} className="border-t border-border">
                         <td className="px-4 py-2.5 text-ink">
                           {p.lab.isOwn ? "Jammu Genetics Hub" : p.lab.name}
-                          {p.id === lowest.id && (
+                          {nLabs > 1 && p.id === lowest.id && (
                             <span className="ml-2 rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-medium text-brand-dark">
                               Lowest
                             </span>
@@ -432,8 +436,8 @@ export default async function CityTestPage({
                 </table>
               </div>
               <p className="mt-2 text-xs text-ink-faint">
-                Jammu Genetics Hub does not run its own laboratory — samples are processed by our accredited
-                partner labs. Prices exclude the per-visit diagnostic fee where home collection applies.
+                Jammu Genetics Hub does not run its own laboratory — samples are processed by our accredited partner
+                labs. Prices exclude the per-visit diagnostic fee where home collection applies.
               </p>
             </section>
 
@@ -442,21 +446,42 @@ export default async function CityTestPage({
                 How it works with Jammu Genetics Hub
               </h2>
               <ol className="grid gap-3 sm:grid-cols-2">
-                <Step n={1} title="Choose your test" desc="Compare partner lab prices and pick the one that suits you — or ask a geneticist which test you need." />
+                <Step
+                  n={1}
+                  title="Choose your test"
+                  desc={
+                    hub === "genetic"
+                      ? "See the price and what sample is needed — or ask a geneticist which test you need."
+                      : "See the price and what sample is needed — and check the choice of test with your oncologist."
+                  }
+                />
                 <Step n={2} title="Sample collection" desc={stepSample} />
                 <Step n={3} title="Processed by a partner lab" desc="Your sample goes to an accredited partner laboratory that performs this test." />
-                <Step n={4} title="Report & guidance" desc={`Get your report online, then go through it with ${GENETICIST_CREDENTIAL} we connect you with.`} />
+                <Step
+                  n={4}
+                  title="Report & guidance"
+                  desc={
+                    hub === "genetic"
+                      ? `Get your report online, then go through it with ${GENETICIST_CREDENTIAL} we connect you with.`
+                      : "Get your report online and review it with your doctor. For inherited-risk results we can connect you with a geneticist."
+                  }
+                />
               </ol>
             </section>
 
             <ListSection
               icon={<Info size={18} className="text-brand" />}
               title="Good to know"
-              items={genetics.goodToKnow}
+              items={content.goodToKnow}
             />
 
             <section className="mt-10">
-              <GeneticCounsellingBanner cityKey={city.key} cityLabel={city.label} testName={product.name} />
+              <GeneticCounsellingBanner
+                cityKey={city.key}
+                cityLabel={city.label}
+                testName={product.name}
+                variant={hub ?? "genetic"}
+              />
             </section>
           </>
         )}
@@ -473,10 +498,10 @@ export default async function CityTestPage({
               </div>
             ))}
           </div>
-          {genetics && (
+          {content && (
             <p className="mt-3 text-xs text-ink-faint">
-              This page is general information to help you understand the test. It is not medical advice —
-              please discuss your results and next steps with your doctor or a geneticist.
+              This page is general information to help you understand the test. It is not medical advice — please
+              discuss your results and next steps with your doctor{hub === "genetic" ? " or a geneticist" : ""}.
             </p>
           )}
         </div>
@@ -484,8 +509,8 @@ export default async function CityTestPage({
         {related.length > 0 && (
           <div className="mt-10">
             <h2 className="mb-3 font-display text-lg font-semibold text-ink">
-              {genetics
-                ? `Other ${genetics.group.toLowerCase()} in ${city.label}`
+              {content
+                ? `Other ${content.group.toLowerCase()} tests in ${city.label}`
                 : `Other ${product.category.name} tests in ${city.label}`}
             </h2>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -496,7 +521,7 @@ export default async function CityTestPage({
                   className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm hover:border-brand"
                 >
                   <span className="text-ink">{r.name}</span>
-                  <span className="font-mono text-xs font-medium text-brand-dark">{formatInr(r.lowestPrice)}+</span>
+                  <span className="shrink-0 font-mono text-xs font-medium text-brand-dark">{formatInr(r.lowestPrice)}+</span>
                 </Link>
               ))}
             </div>
@@ -514,11 +539,11 @@ export default async function CityTestPage({
           <Link href={`/${city.key}`} className="font-medium text-brand hover:underline">
             More tests in {city.label}
           </Link>
-          {genetics && (
+          {hubCfg && hub && (
             <>
               <span className="mx-1 text-ink-faint">·</span>
-              <Link href={`/${city.key}/genetic-tests`} className="font-medium text-brand hover:underline">
-                All genetic tests in {city.label}
+              <Link href={hubPath(city.key, hub)} className="font-medium text-brand hover:underline">
+                All {hubCfg.label.toLowerCase()} in {city.label}
               </Link>
             </>
           )}

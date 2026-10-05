@@ -8,47 +8,14 @@
 // that isn't in this map is NOT a genetics test and keeps the plain
 // price-page layout.
 
+import { groupByName, knowledgeFor } from "@/lib/test-knowledge";
+
 // The credential as the business owner states it. Not expanded here on
 // purpose — keep it exactly as claimed, and only where it can be backed up.
 export const GENETICIST_CREDENTIAL = "BGCI-certified geneticists";
 
-export type GeneticsGroup =
-  | "Pregnancy screening"
-  | "Prenatal diagnosis & IVF"
-  | "Newborn & child health"
-  | "Hereditary cancer"
-  | "Exome, genome & chromosome tests"
-  | "Carrier screening & single-gene tests";
-
-export const GENETICS_GROUPS: { name: GeneticsGroup; blurb: string }[] = [
-  {
-    name: "Pregnancy screening",
-    blurb: "Safe blood-based screens for Down syndrome and other chromosomal conditions.",
-  },
-  {
-    name: "Prenatal diagnosis & IVF",
-    blurb: "Definitive prenatal testing and embryo testing for IVF.",
-  },
-  {
-    name: "Newborn & child health",
-    blurb: "Early detection of treatable conditions in babies and children.",
-  },
-  {
-    name: "Hereditary cancer",
-    blurb: "Find out whether cancer runs in your genes — for you and your family.",
-  },
-  {
-    name: "Exome, genome & chromosome tests",
-    blurb: "Broad tests to find the genetic cause of an unexplained condition.",
-  },
-  {
-    name: "Carrier screening & single-gene tests",
-    blurb: "Plan ahead for pregnancy, or confirm a suspected inherited condition.",
-  },
-];
-
 export type GeneticTestContent = {
-  group: GeneticsGroup;
+  group: string;
   /** Other names people search this test by — meta keywords + schema alternateName. */
   aliases: string[];
   /**
@@ -417,7 +384,7 @@ export const GENETICS_CONTENT: Record<string, GeneticTestContent> = {
 
   // ── Carrier screening & single-gene tests ───────────────────────────
   "carrier-screening-focused": {
-    group: "Carrier screening & single-gene tests",
+    group: "Carrier screening & thalassemia",
     aliases: ["Carrier screening", "Carrier test", "Genetic carrier screening", "Pre-pregnancy genetic test", "Recessive disease panel"],
     collection: "home",
     whyDone: [
@@ -437,7 +404,7 @@ export const GENETICS_CONTENT: Record<string, GeneticTestContent> = {
     ],
   },
   "carrier-screening-expanded": {
-    group: "Carrier screening & single-gene tests",
+    group: "Carrier screening & thalassemia",
     aliases: ["Expanded carrier screening", "NGS carrier panel", "500 gene carrier test", "Comprehensive carrier screening"],
     collection: "home",
     whyDone: [
@@ -457,7 +424,7 @@ export const GENETICS_CONTENT: Record<string, GeneticTestContent> = {
     ],
   },
   "alpha-thalassemia-mutation-analysis": {
-    group: "Carrier screening & single-gene tests",
+    group: "Carrier screening & thalassemia",
     aliases: ["Alpha thalassemia test", "HBA1 HBA2 gene test", "Alpha thal mutation analysis", "Thalassemia carrier test"],
     collection: "home",
     whyDone: [
@@ -477,7 +444,7 @@ export const GENETICS_CONTENT: Record<string, GeneticTestContent> = {
     ],
   },
   "beta-thalassemia-mutation-analysis": {
-    group: "Carrier screening & single-gene tests",
+    group: "Carrier screening & thalassemia",
     aliases: ["Beta thalassemia test", "HBB gene test", "Thalassemia mutation analysis", "Thalassemia prenatal diagnosis"],
     collection: "home",
     whyDone: [
@@ -497,7 +464,7 @@ export const GENETICS_CONTENT: Record<string, GeneticTestContent> = {
     ],
   },
   "fragile-x-syndrome-testing": {
-    group: "Carrier screening & single-gene tests",
+    group: "Gene panels & single-gene tests",
     aliases: ["Fragile X test", "FMR1 gene test", "Fragile X syndrome test", "CGG repeat test"],
     collection: "home",
     whyDone: [
@@ -517,7 +484,7 @@ export const GENETICS_CONTENT: Record<string, GeneticTestContent> = {
     ],
   },
   "spinal-muscular-atrophy-testing": {
-    group: "Carrier screening & single-gene tests",
+    group: "Gene panels & single-gene tests",
     aliases: ["SMA test", "SMN1 gene test", "Spinal muscular atrophy test", "SMA carrier test"],
     collection: "home",
     whyDone: [
@@ -537,7 +504,7 @@ export const GENETICS_CONTENT: Record<string, GeneticTestContent> = {
     ],
   },
   "cystic-fibrosis-cftr-testing": {
-    group: "Carrier screening & single-gene tests",
+    group: "Gene panels & single-gene tests",
     aliases: ["Cystic fibrosis test", "CFTR gene test", "CFTR mutation analysis", "Cystic fibrosis carrier test"],
     collection: "home",
     whyDone: [
@@ -557,7 +524,7 @@ export const GENETICS_CONTENT: Record<string, GeneticTestContent> = {
     ],
   },
   "congenital-adrenal-hyperplasia-gene-analysis": {
-    group: "Carrier screening & single-gene tests",
+    group: "Gene panels & single-gene tests",
     aliases: ["CAH gene test", "CYP21A2 gene test", "21-hydroxylase deficiency test", "Congenital adrenal hyperplasia test"],
     collection: "home",
     whyDone: [
@@ -582,4 +549,35 @@ export const GENETICS_SLUGS = Object.keys(GENETICS_CONTENT);
 
 export function geneticsContentFor(slug: string): GeneticTestContent | null {
   return GENETICS_CONTENT[slug] ?? null;
+}
+
+export type TestContent = GeneticTestContent & { hub: "genetic" | "oncology" };
+
+function hubOf(group: string): "genetic" | "oncology" {
+  const g = groupByName(group);
+  return g && g.hubs.includes("genetic") ? "genetic" : "oncology";
+}
+
+/**
+ * Landing-page content for any catalog product that is a genetic or oncology
+ * test, or null for a routine test. Hand-written copy (above) wins; every
+ * other test falls back to the rule-based knowledge in test-knowledge.ts.
+ */
+export function contentForProduct(p: { slug: string; name: string; prices?: { testCode: string | null }[] }): TestContent | null {
+  const curated = GENETICS_CONTENT[p.slug];
+  if (curated) return { ...curated, hub: hubOf(curated.group) };
+  const k = knowledgeFor(
+    p.name,
+    (p.prices ?? []).map((x) => x.testCode ?? "")
+  );
+  if (!k) return null;
+  return {
+    group: k.group,
+    aliases: k.aliases,
+    collection: k.collection,
+    whyDone: k.whyDone,
+    whoFor: k.whoFor,
+    goodToKnow: k.goodToKnow,
+    hub: hubOf(k.group),
+  };
 }

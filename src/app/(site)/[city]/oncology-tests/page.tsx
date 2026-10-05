@@ -13,7 +13,7 @@ export function generateStaticParams() {
 
 export const dynamicParams = false;
 
-const HUB = "genetic" as const;
+const HUB = "oncology" as const;
 
 export async function generateMetadata(
   { params }: { params: Promise<{ city: string }> },
@@ -40,7 +40,7 @@ export async function generateMetadata(
   };
 }
 
-export default async function GeneticTestsHubPage({ params }: { params: Promise<{ city: string }> }) {
+export default async function OncologyTestsHubPage({ params }: { params: Promise<{ city: string }> }) {
   const { city: cityKey } = await params;
   const city = cityByKey(cityKey);
   if (!city) notFound();

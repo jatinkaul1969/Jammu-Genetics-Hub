@@ -86,11 +86,12 @@ export default async function HomePage() {
             </span>
             <div>
               <h2 className="font-display text-xl font-semibold text-ink">
-                Genetic testing — all in one place, with expert guidance
+                Genetic &amp; oncology testing — all in one place, with expert guidance
               </h2>
               <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink-soft">
-                Prenatal screening (NIPT, double marker), newborn screening, hereditary cancer testing, whole
-                exome and genome sequencing, carrier screening and single-gene tests. We help you connect with
+                Prenatal screening (NIPT / InsighT, double marker), newborn screening, hereditary cancer testing,
+                whole exome and genome sequencing, carrier screening and single-gene tests — plus 600+ oncology
+                (cancer) tests for leukemia, lymphoma, lung, breast and other cancers. We help you connect with
                 BGCI-certified geneticists so you understand every result and what to do next.
               </p>
               <div className="mt-4 flex flex-wrap gap-2.5">
@@ -101,6 +102,15 @@ export default async function HomePage() {
                     className="flex items-center gap-1 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
                   >
                     Genetic tests in {c.label} <ArrowRight size={14} />
+                  </Link>
+                ))}
+                {SERVICEABLE_CITIES.map((c) => (
+                  <Link
+                    key={`onc-${c.key}`}
+                    href={`/${c.key}/oncology-tests`}
+                    className="flex items-center gap-1 rounded-lg border border-brand bg-surface px-4 py-2 text-sm font-semibold text-brand hover:bg-brand-soft"
+                  >
+                    Oncology tests in {c.label} <ArrowRight size={14} />
                   </Link>
                 ))}
                 <Link

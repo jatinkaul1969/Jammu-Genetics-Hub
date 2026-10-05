@@ -17,6 +17,7 @@ import {
   Briefcase,
   Backpack,
   Dna,
+  Microscope,
   type LucideProps,
 } from "lucide-react";
 
@@ -39,6 +40,7 @@ const ICONS: Record<string, React.ComponentType<LucideProps>> = {
   Briefcase,
   Backpack,
   Dna,
+  Microscope,
 };
 
 export const CATEGORY_ICON_NAMES = Object.keys(ICONS);

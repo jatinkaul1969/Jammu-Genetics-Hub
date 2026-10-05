@@ -5,7 +5,11 @@ import { ProductCard } from "@/components/ProductCard";
 import { SearchBox } from "@/components/SearchBox";
 import { inheritedShareImages } from "@/lib/seo";
 
-type SearchParams = { q?: string; category?: string; type?: string };
+type SearchParams = { q?: string; category?: string; type?: string; page?: string };
+
+// The catalog now holds well over a thousand tests, so results are paged —
+// rendering every card at once makes /search?category=oncology enormous.
+const PAGE_SIZE = 48;
 
 export async function generateMetadata(
   { searchParams }: { searchParams: Promise<SearchParams> },
@@ -17,7 +21,7 @@ export async function generateMetadata(
     : "Search Diagnostic Tests & Packages in Jammu";
   const description = q
     ? `Compare "${q}" test prices in Jammu across Jammu Genetics Hub, Thyrocare, Redcliffe Labs, Dr Lal PathLabs and Metropolis. Book free home sample collection.`
-    : "Browse and compare 70+ diagnostic tests and health packages across 5 labs in Jammu — Jammu Genetics Hub, Thyrocare, Redcliffe Labs, Dr Lal PathLabs and Metropolis. Free home sample collection.";
+    : "Browse 1,300+ genetic, oncology and diagnostic tests and health packages in Jammu — NIPT, exome sequencing, cancer panels, blood tests — across Jammu Genetics Hub and partner labs. Compare prices and book.";
   const shareImages = await inheritedShareImages(parent);
   return {
     title,
@@ -42,11 +46,16 @@ export default async function SearchPage({
   const q = params.q ?? "";
   const category = params.category ?? "";
   const type = params.type ?? "";
+  const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
 
-  const [products, categories] = await Promise.all([
+  const [allProducts, categories] = await Promise.all([
     searchProducts(q, category || undefined, type || undefined),
     getCategories(),
   ]);
+
+  const totalPages = Math.max(1, Math.ceil(allProducts.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const products = allProducts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const activeCategory = categories.find((c) => c.slug === category);
 
@@ -54,16 +63,17 @@ export default async function SearchPage({
   // match, say so explicitly — a blank "no results" reads as broken search
   // when really it's just filtered to a category the match doesn't belong to.
   const unfilteredCount =
-    products.length === 0 && q && (category || type)
+    allProducts.length === 0 && q && (category || type)
       ? (await searchProducts(q)).length
       : 0;
 
   function buildHref(next: Partial<SearchParams>) {
-    const merged = { q, category, type, ...next };
+    const merged = { q, category, type, page: "", ...next };
     const sp = new URLSearchParams();
     if (merged.q) sp.set("q", merged.q);
     if (merged.category) sp.set("category", merged.category);
     if (merged.type) sp.set("type", merged.type);
+    if (merged.page && merged.page !== "1") sp.set("page", merged.page);
     const qs = sp.toString();
     return qs ? `/search?${qs}` : "/search";
   }
@@ -117,12 +127,12 @@ export default async function SearchPage({
       </div>
 
       <p className="mb-4 text-sm text-ink-soft">
-        {products.length} result{products.length !== 1 ? "s" : ""}
+        {allProducts.length} result{allProducts.length !== 1 ? "s" : ""}
         {q && <> for &ldquo;{q}&rdquo;</>}
         {activeCategory && <> in {activeCategory.name}</>}
       </p>
 
-      {products.length === 0 ? (
+      {allProducts.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-surface p-10 text-center text-sm text-ink-soft">
           {unfilteredCount > 0 ? (
             <>
@@ -143,6 +153,24 @@ export default async function SearchPage({
             <ProductCard key={p.slug} product={p} />
           ))}
         </div>
+      )}
+
+      {totalPages > 1 && (
+        <nav aria-label="Pagination" className="mt-8 flex flex-wrap items-center justify-center gap-2 text-sm">
+          {currentPage > 1 && (
+            <Link href={buildHref({ page: String(currentPage - 1) })} rel="prev" className="rounded-md border border-border px-3 py-1.5 hover:border-brand">
+              ← Previous
+            </Link>
+          )}
+          <span className="px-2 text-ink-faint">
+            Page {currentPage} of {totalPages}
+          </span>
+          {currentPage < totalPages && (
+            <Link href={buildHref({ page: String(currentPage + 1) })} rel="next" className="rounded-md border border-border px-3 py-1.5 hover:border-brand">
+              Next →
+            </Link>
+          )}
+        </nav>
       )}
     </div>
   );

@@ -59,18 +59,59 @@ export async function getProductsBySlugs(slugs: string[]) {
   return withLowestPrice(products);
 }
 
+// Words people search by that don't literally appear in a test's name — so
+// "oncology test" finds cancer tests and "NIPT" finds the InsighT range.
+const SEARCH_SYNONYMS: Record<string, string[]> = {
+  oncology: ["cancer", "tumor", "tumour", "leukemia", "lymphoma", "myeloma"],
+  oncologist: ["cancer"],
+  cancer: ["oncology", "carcinoma", "tumor"],
+  nipt: ["prenatal", "insight"],
+  insight: ["nipt"],
+  insights: ["nipt"],
+  prenatal: ["pregnancy", "nipt", "fetal"],
+  pregnancy: ["prenatal", "antenatal", "trimester"],
+  exome: ["wes"],
+  wes: ["exome"],
+  pgt: ["preimplantation", "embryo"],
+  pgd: ["preimplantation", "embryo"],
+  karyotype: ["karyotyping", "chromosome"],
+  chromosome: ["karyotype"],
+  thalassemia: ["thal", "haemoglobin"],
+  brca: ["hereditary", "breast"],
+  genetic: ["genetics", "gene", "dna"],
+  genetics: ["genetic", "gene"],
+  newborn: ["neonatal", "metabolic"],
+  fish: ["fluorescence"],
+  double: ["duo", "first trimester", "evico"],
+  triple: ["integrated", "serum"],
+  quad: ["quadruple"],
+  marker: ["screening", "evico"],
+};
+
 export async function searchProducts(query: string, categorySlug?: string, type?: string) {
+  // Every word must match somewhere (name, description or category), but a
+  // word may match through a synonym — "cancer test" = cancer-ish AND test-ish.
+  const STOP = new Set(["test", "tests", "testing", "price", "prices", "cost", "rate", "rates", "in", "near", "me", "best", "lab", "for", "of", "the", "at", "jammu", "mumbai", "and"]);
+  const words = query
+    .trim()
+    .split(/\s+/)
+    .filter((t) => t.length > 0);
+  const meaningful = words.filter((t) => !STOP.has(t.toLowerCase()));
+  const tokens = (meaningful.length > 0 ? meaningful : words).slice(0, 6);
+  const tokenFilters = tokens.map((t) => {
+    const terms = [t, ...(SEARCH_SYNONYMS[t.toLowerCase()] ?? [])];
+    return {
+      OR: terms.flatMap((term) => [
+        { name: { contains: term, mode: "insensitive" as const } },
+        { description: { contains: term, mode: "insensitive" as const } },
+        { category: { name: { contains: term, mode: "insensitive" as const } } },
+      ]),
+    };
+  });
   const products = await prisma.product.findMany({
     where: {
       AND: [
-        query
-          ? {
-              OR: [
-                { name: { contains: query, mode: "insensitive" } },
-                { description: { contains: query, mode: "insensitive" } },
-              ],
-            }
-          : {},
+        ...tokenFilters,
         categorySlug ? { category: { slug: categorySlug } } : {},
         type ? { type } : {},
       ],

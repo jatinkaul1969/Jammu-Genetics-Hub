@@ -38,6 +38,13 @@ export async function Footer() {
                 </Link>
               </li>
             ))}
+            {SERVICEABLE_CITIES.map((c) => (
+              <li key={`onc-${c.key}`}>
+                <Link href={`/${c.key}/oncology-tests`} className="hover:text-brand">
+                  Oncology tests in {c.label}
+                </Link>
+              </li>
+            ))}
             <li>
               <Link href={`/${SERVICEABLE_CITIES[0].key}/genetic-counselling`} className="hover:text-brand">
                 Genetic counselling
