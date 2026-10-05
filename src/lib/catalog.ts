@@ -51,6 +51,14 @@ export async function getProductsByCategory(categorySlug: string) {
   return withLowestPrice(products);
 }
 
+export async function getProductsBySlugs(slugs: string[]) {
+  const products = await prisma.product.findMany({
+    where: { slug: { in: slugs } },
+    include: { category: true },
+  });
+  return withLowestPrice(products);
+}
+
 export async function searchProducts(query: string, categorySlug?: string, type?: string) {
   const products = await prisma.product.findMany({
     where: {

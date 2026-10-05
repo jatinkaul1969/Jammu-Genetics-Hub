@@ -18,12 +18,34 @@ export type ServiceableCity = {
   pincodePrefixes: string[];
   /** State/UT — used in PostalAddress structured data (schema.org). */
   state: string;
+  /** Real street address of the business in this city, if it has one — must
+   *  match the Google Business Profile exactly (NAP consistency). */
+  address?: { streetAddress: string; postalCode: string };
 };
 
 export const SERVICEABLE_CITIES: ServiceableCity[] = [
-  { key: "jammu", label: "Jammu", pincodePrefixes: ["180", "181"], state: "Jammu and Kashmir" },
+  {
+    key: "jammu",
+    label: "Jammu",
+    pincodePrefixes: ["180", "181"],
+    state: "Jammu and Kashmir",
+    address: { streetAddress: "Lane No-1, New Plots, 299a, Sarwal, Morh", postalCode: "180005" },
+  },
   { key: "mumbai", label: "Mumbai", pincodePrefixes: ["400"], state: "Maharashtra" },
 ];
+
+/** One-line address as shown on the Google Business Profile, or null. */
+export function formattedAddress(city: ServiceableCity): string | null {
+  if (!city.address) return null;
+  return `${city.address.streetAddress}, ${city.label}, ${city.state} ${city.address.postalCode}`;
+}
+
+/** Google Maps link that opens the business listing for this city's address. */
+export function mapsUrl(city: ServiceableCity): string | null {
+  const addr = formattedAddress(city);
+  if (!addr) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`Jammu Genetics Hub, ${addr}`)}`;
+}
 
 // Shown next to the "more cities coming soon" note in the city picker.
 export const COMING_SOON_NOTE = "More cities coming soon";

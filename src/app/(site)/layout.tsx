@@ -38,9 +38,9 @@ const plexMono = IBM_Plex_Mono({
 // nothing else here needs to change.
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://jammu-genetics-hub.vercel.app";
 
-const SITE_TITLE = "Jammu Genetics Hub — Compare Lab Test Prices & Book Home Sample Collection in Jammu";
+const SITE_TITLE = "Jammu Genetics Hub — Genetic Tests in Jammu: NIPT, Exome Sequencing & Lab Tests";
 const SITE_DESCRIPTION =
-  "Jammu's one-stop diagnostics platform, directly accredited with every major NABL-accredited lab — Thyrocare, Redcliffe Labs, Dr Lal PathLabs, Metropolis and specialist genetics partners. Compare test and health package prices across all of them, then book free home sample collection with your own phlebotomist. Blood test, full body checkup, thyroid test price in Jammu.";
+  "One-stop genetic testing in Jammu — NIPT, double marker, newborn screening, BRCA, whole exome sequencing and more, with guidance from BGCI-certified geneticists. Compare prices across Thyrocare, Redcliffe Labs, Dr Lal PathLabs, Metropolis and specialist genetics partners, and book free home sample collection.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -50,6 +50,14 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   keywords: [
+    "genetic testing in Jammu",
+    "genetic tests Jammu",
+    "genetic counselling Jammu",
+    "NIPT test Jammu",
+    "double marker test Jammu",
+    "whole exome sequencing Jammu",
+    "newborn screening Jammu",
+    "BRCA test Jammu",
     "diagnostic tests Jammu",
     "blood test price Jammu",
     "full body checkup Jammu",

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Home as HomeIcon, ScanSearch, Truck, FileCheck2 } from "lucide-react";
+import { ArrowRight, Home as HomeIcon, ScanSearch, Truck, FileCheck2, Dna, BadgeCheck } from "lucide-react";
 import { getCategories, getPopularProducts, getLabs } from "@/lib/catalog";
 import { CategoryRail } from "@/components/CategoryRail";
 import { ProductCard } from "@/components/ProductCard";
@@ -20,13 +20,16 @@ export default async function HomePage() {
   const otherLabs = labs.filter((l) => !l.isOwn);
   const jgh = labs.find((l) => l.isOwn);
 
+  const jammu = SERVICEABLE_CITIES[0];
   const jsonLd = buildBusinessJsonLd({
     name: "Jammu Genetics Hub",
     url: baseUrl,
     description:
-      "Jammu's one-stop diagnostics platform, directly affiliated with every major NABL-accredited lab — compare test prices across all of them and book free home sample collection from whichever you choose.",
-    addressLocality: "Jammu",
-    addressRegion: "Jammu and Kashmir",
+      "One-stop genetic testing and diagnostics platform in Jammu — NIPT, double marker, newborn screening, BRCA, whole exome sequencing and more, with guidance from BGCI-certified geneticists. Compare partner-lab prices and book free home sample collection.",
+    addressLocality: jammu.label,
+    addressRegion: jammu.state,
+    streetAddress: jammu.address?.streetAddress,
+    postalCode: jammu.address?.postalCode,
     areaServed: SERVICEABLE_CITIES.map((c) => c.label).join(", "),
   });
 
@@ -37,16 +40,16 @@ export default async function HomePage() {
         <DiagnosticsBackdrop />
         <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
           <p className="mb-3 font-mono text-xs uppercase tracking-wider text-brand">
-            Jammu Genetics Hub · Diagnostics Aggregator
+            Jammu Genetics Hub · Genetic Testing &amp; Diagnostics
           </p>
           <h1 className="max-w-2xl font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl md:text-5xl">
-            Jammu&apos;s one-stop diagnostics platform — every lab, every test, one search.
+            One stop for every genetic test in Jammu — with expert geneticist guidance.
           </h1>
           <p className="mt-4 max-w-xl text-base text-ink-soft">
-            We&apos;re directly accredited with every major lab in Jammu — Thyrocare, Redcliffe Labs, Dr
-            Lal PathLabs, Metropolis and specialist genetics partners. Compare the same test&apos;s price
-            across all of them in one search, then book with whoever you trust — a phlebotomist comes home
-            to collect your sample no matter which lab you choose.
+            From NIPT and double marker to whole exome sequencing, newborn screening and cancer-risk
+            testing — compare prices across Thyrocare, Redcliffe Labs, Dr Lal PathLabs, Metropolis and
+            specialist genetics partners, then book with whoever you trust. We also connect you with
+            BGCI-certified geneticists to guide you before and after your test.
           </p>
           <div className="mt-6 max-w-xl">
             <HeroSearch />
@@ -73,6 +76,43 @@ export default async function HomePage() {
             </span>
           ))}
         </p>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 pt-2 pb-6 sm:px-6">
+        <div className="rounded-2xl border border-brand/30 bg-brand-soft/50 p-6 sm:p-8">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand text-white">
+              <Dna size={20} />
+            </span>
+            <div>
+              <h2 className="font-display text-xl font-semibold text-ink">
+                Genetic testing — all in one place, with expert guidance
+              </h2>
+              <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink-soft">
+                Prenatal screening (NIPT, double marker), newborn screening, hereditary cancer testing, whole
+                exome and genome sequencing, carrier screening and single-gene tests. We help you connect with
+                BGCI-certified geneticists so you understand every result and what to do next.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2.5">
+                {SERVICEABLE_CITIES.map((c) => (
+                  <Link
+                    key={c.key}
+                    href={`/${c.key}/genetic-tests`}
+                    className="flex items-center gap-1 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
+                  >
+                    Genetic tests in {c.label} <ArrowRight size={14} />
+                  </Link>
+                ))}
+                <Link
+                  href={`/${SERVICEABLE_CITIES[0].key}/genetic-counselling`}
+                  className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-ink hover:border-brand"
+                >
+                  <BadgeCheck size={14} className="text-brand" /> Talk to a geneticist
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6">

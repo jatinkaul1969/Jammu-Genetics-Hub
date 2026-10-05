@@ -51,5 +51,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
   );
 
-  return [...staticEntries, ...cityEntries, ...categoryEntries, ...productEntries, ...cityTestEntries];
+  // Genetics landing pages: the per-city "all genetic tests" hub and the
+  // genetic-counselling page — the entry points for "genetic testing in
+  // {city}" / "genetic counselling in {city}" searches.
+  const geneticsEntries: MetadataRoute.Sitemap = SERVICEABLE_CITIES.flatMap((c) => [
+    { url: `${baseUrl}/${c.key}/genetic-tests`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.95 },
+    { url: `${baseUrl}/${c.key}/genetic-counselling`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.9 },
+  ]);
+
+  return [
+    ...staticEntries,
+    ...cityEntries,
+    ...geneticsEntries,
+    ...categoryEntries,
+    ...productEntries,
+    ...cityTestEntries,
+  ];
 }

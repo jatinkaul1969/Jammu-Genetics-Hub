@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata, ResolvingMetadata } from "next";
-import { ArrowRight, MapPin, Home as HomeIcon, ScanSearch } from "lucide-react";
+import { ArrowRight, MapPin, Home as HomeIcon, ScanSearch, Dna } from "lucide-react";
 import { getCategories, getPopularProducts, getLabs } from "@/lib/catalog";
 import { CategoryRail } from "@/components/CategoryRail";
 import { ProductCard } from "@/components/ProductCard";
@@ -57,6 +57,8 @@ export default async function CityHubPage({ params }: { params: Promise<{ city: 
     description: `Compare diagnostic test and health package prices in ${city.label} across Jammu Genetics Hub and every major NABL-accredited lab, then book free home sample collection.`,
     addressLocality: city.label,
     addressRegion: city.state,
+    streetAddress: city.address?.streetAddress,
+    postalCode: city.address?.postalCode,
     areaServed: { "@type": "City", name: city.label },
   });
 
@@ -103,6 +105,30 @@ export default async function CityHubPage({ params }: { params: Promise<{ city: 
             <ScanSearch size={13} className="text-brand" /> {labs.length} labs compared side by side
           </span>
         </div>
+
+        <section className="mt-8 rounded-2xl border border-brand/30 bg-brand-soft/50 p-5 sm:p-6">
+          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-ink">
+            <Dna size={18} className="text-brand" /> Genetic testing in {city.label}
+          </h2>
+          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink-soft">
+            NIPT, double marker, newborn screening, hereditary cancer, whole exome sequencing, carrier
+            screening and more — one place to compare and book, with BGCI-certified geneticists to guide you.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2.5">
+            <Link
+              href={`/${city.key}/genetic-tests`}
+              className="flex items-center gap-1 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
+            >
+              All genetic tests <ArrowRight size={14} />
+            </Link>
+            <Link
+              href={`/${city.key}/genetic-counselling`}
+              className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-ink hover:border-brand"
+            >
+              Genetic counselling
+            </Link>
+          </div>
+        </section>
 
         <section className="mt-8">
           <h2 className="mb-4 font-display text-xl font-semibold text-ink">Browse by category</h2>

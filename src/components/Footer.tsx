@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { ShieldCheck, Home, Clock, Award, Mail, Phone, MessageCircle } from "lucide-react";
+import { ShieldCheck, Home, Clock, Award, Mail, Phone, MessageCircle, MapPin } from "lucide-react";
 import { CONTACT_EMAIL, CONTACT_PHONES, WHATSAPP_GREETING, buildWhatsAppLink } from "@/lib/contact";
 import { getLabs } from "@/lib/catalog";
-import { SERVICEABLE_CITIES } from "@/lib/serviceable-areas";
+import { SERVICEABLE_CITIES, formattedAddress, mapsUrl } from "@/lib/serviceable-areas";
 
 export async function Footer() {
   const labs = await getLabs();
@@ -31,6 +31,18 @@ export async function Footer() {
                 </Link>
               </li>
             ))}
+            {SERVICEABLE_CITIES.map((c) => (
+              <li key={`gt-${c.key}`}>
+                <Link href={`/${c.key}/genetic-tests`} className="hover:text-brand">
+                  Genetic tests in {c.label}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link href={`/${SERVICEABLE_CITIES[0].key}/genetic-counselling`} className="hover:text-brand">
+                Genetic counselling
+              </Link>
+            </li>
           </ul>
         </div>
 
@@ -65,6 +77,18 @@ export async function Footer() {
               <li key={phone}>
                 <a href={`tel:+91${phone}`} className="flex items-center gap-1.5 hover:text-brand">
                   <Phone size={14} className="shrink-0 text-cat-teal" /> +91 {phone}
+                </a>
+              </li>
+            ))}
+            {SERVICEABLE_CITIES.filter((c) => c.address).map((c) => (
+              <li key={`addr-${c.key}`}>
+                <a
+                  href={mapsUrl(c) ?? undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-start gap-1.5 hover:text-brand"
+                >
+                  <MapPin size={14} className="mt-0.5 shrink-0 text-cat-coral" /> {formattedAddress(c)}
                 </a>
               </li>
             ))}
