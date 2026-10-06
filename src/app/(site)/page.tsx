@@ -6,7 +6,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { HeroSearch } from "@/components/HeroSearch";
 import { DiagnosticsBackdrop } from "@/components/DiagnosticsBackdrop";
 import { getBaseUrl } from "@/lib/site-url";
-import { SERVICEABLE_CITIES } from "@/lib/serviceable-areas";
+import { SERVICEABLE_CITIES, mapsUrl } from "@/lib/serviceable-areas";
 import { buildBusinessJsonLd } from "@/lib/seo";
 
 export default async function HomePage() {
@@ -30,6 +30,7 @@ export default async function HomePage() {
     addressRegion: jammu.state,
     streetAddress: jammu.address?.streetAddress,
     postalCode: jammu.address?.postalCode,
+    hasMap: mapsUrl(jammu) ?? undefined,
     areaServed: SERVICEABLE_CITIES.map((c) => c.label).join(", "),
   });
 

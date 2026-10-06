@@ -1,5 +1,5 @@
 import type { ResolvingMetadata } from "next";
-import { CONTACT_EMAIL, CONTACT_PHONES, WHATSAPP_GREETING, buildWhatsAppLink } from "@/lib/contact";
+import { CONTACT_EMAIL, CONTACT_PHONES, GOOGLE_BUSINESS_URL, WHATSAPP_GREETING, buildWhatsAppLink } from "@/lib/contact";
 
 // Shared NAP (Name/Address/Phone) + WhatsApp business entity JSON-LD, used
 // on the homepage and every /[city] hub page. Real phone/email/WhatsApp
@@ -16,6 +16,8 @@ export function buildBusinessJsonLd(params: {
   addressRegion: string;
   streetAddress?: string;
   postalCode?: string;
+  /** Google Maps link for this location (search link or the real listing URL). */
+  hasMap?: string;
   areaServed: string | { "@type": "City"; name: string };
 }) {
   return {
@@ -38,7 +40,8 @@ export function buildBusinessJsonLd(params: {
     medicalSpecialty: ["https://schema.org/Pathology", "https://schema.org/Genetic"],
     // WhatsApp is the primary contact channel this business actually
     // answers on — sameAs tells Google "this profile is the same entity".
-    sameAs: [buildWhatsAppLink(WHATSAPP_GREETING)],
+    sameAs: [buildWhatsAppLink(WHATSAPP_GREETING), ...(GOOGLE_BUSINESS_URL ? [GOOGLE_BUSINESS_URL] : [])],
+    ...(params.hasMap ? { hasMap: params.hasMap } : GOOGLE_BUSINESS_URL ? { hasMap: GOOGLE_BUSINESS_URL } : {}),
   };
 }
 

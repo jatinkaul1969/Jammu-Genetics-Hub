@@ -21,7 +21,8 @@ export async function Footer() {
         <div>
           <p className="mb-3 font-display text-sm font-semibold text-ink">Company</p>
           <ul className="space-y-2 text-sm text-ink-soft">
-            <li><Link href="/" className="hover:text-brand">About Jammu Genetics Hub</Link></li>
+            <li><Link href="/about" className="hover:text-brand">About Jammu Genetics Hub</Link></li>
+            <li><Link href="/contact" className="hover:text-brand">Contact &amp; directions</Link></li>
             <li><Link href="/search" className="hover:text-brand">All Tests &amp; Packages</Link></li>
             <li><Link href="/account/bookings" className="hover:text-brand">My Bookings</Link></li>
             {SERVICEABLE_CITIES.map((c) => (

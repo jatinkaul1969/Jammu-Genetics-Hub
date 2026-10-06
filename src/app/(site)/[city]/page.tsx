@@ -6,7 +6,7 @@ import { getCategories, getPopularProducts, getLabs } from "@/lib/catalog";
 import { CategoryRail } from "@/components/CategoryRail";
 import { ProductCard } from "@/components/ProductCard";
 import { getBaseUrl } from "@/lib/site-url";
-import { SERVICEABLE_CITIES, cityByKey } from "@/lib/serviceable-areas";
+import { SERVICEABLE_CITIES, cityByKey, mapsUrl } from "@/lib/serviceable-areas";
 import { inheritedShareImages, buildBusinessJsonLd } from "@/lib/seo";
 
 export function generateStaticParams() {
@@ -59,6 +59,7 @@ export default async function CityHubPage({ params }: { params: Promise<{ city: 
     addressRegion: city.state,
     streetAddress: city.address?.streetAddress,
     postalCode: city.address?.postalCode,
+    hasMap: mapsUrl(city) ?? undefined,
     areaServed: { "@type": "City", name: city.label },
   });
 

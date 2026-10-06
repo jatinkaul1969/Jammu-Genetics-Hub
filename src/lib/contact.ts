@@ -14,3 +14,9 @@ export function buildWhatsAppLink(message: string) {
 // widget, footer, contact links) — one string instead of each place
 // re-typing a slightly different opener.
 export const WHATSAPP_GREETING = "Hi Jammu Genetics Hub! I have a question about a test/booking.";
+
+// Optional: the short "Share profile" link from the Google Business Profile
+// (e.g. https://maps.app.goo.gl/...). When set, it is added to the site's
+// structured data as the same business and shown as a "Review us on Google"
+// link. Set NEXT_PUBLIC_GOOGLE_BUSINESS_URL in Vercel — no code change needed.
+export const GOOGLE_BUSINESS_URL = process.env.NEXT_PUBLIC_GOOGLE_BUSINESS_URL || "";
