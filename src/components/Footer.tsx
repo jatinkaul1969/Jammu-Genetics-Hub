@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { ShieldCheck, Home, Clock, Award, Mail, Phone, MessageCircle, MapPin } from "lucide-react";
-import { CONTACT_EMAIL, CONTACT_PHONES, WHATSAPP_GREETING, buildWhatsAppLink } from "@/lib/contact";
+import { ShieldCheck, Home, Clock, Award, Mail, Phone, MessageCircle, MapPin, Star } from "lucide-react";
+import { CONTACT_EMAIL, CONTACT_PHONES, GOOGLE_BUSINESS_URL, WHATSAPP_GREETING, buildWhatsAppLink } from "@/lib/contact";
 import { getLabs } from "@/lib/catalog";
 import { SERVICEABLE_CITIES, formattedAddress, mapsUrl } from "@/lib/serviceable-areas";
 
@@ -100,6 +100,11 @@ export async function Footer() {
                 </a>
               </li>
             ))}
+            <li>
+              <a href={GOOGLE_BUSINESS_URL} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-brand">
+                <Star size={14} className="shrink-0 text-gold" /> Review us on Google
+              </a>
+            </li>
           </ul>
         </div>
       </div>

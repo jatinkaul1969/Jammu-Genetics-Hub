@@ -19,4 +19,5 @@ export const WHATSAPP_GREETING = "Hi Jammu Genetics Hub! I have a question about
 // (e.g. https://maps.app.goo.gl/...). When set, it is added to the site's
 // structured data as the same business and shown as a "Review us on Google"
 // link. Set NEXT_PUBLIC_GOOGLE_BUSINESS_URL in Vercel — no code change needed.
-export const GOOGLE_BUSINESS_URL = process.env.NEXT_PUBLIC_GOOGLE_BUSINESS_URL || "";
+export const GOOGLE_BUSINESS_URL =
+  process.env.NEXT_PUBLIC_GOOGLE_BUSINESS_URL || "https://share.google/qitcemOsTeMlJzUQt";
