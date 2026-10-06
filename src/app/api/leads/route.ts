@@ -24,13 +24,21 @@ export async function POST(req: Request) {
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const phone = typeof body?.phone === "string" ? body.phone.trim() : "";
   const city = typeof body?.city === "string" ? body.city.trim() : "";
-  const area = typeof body?.area === "string" ? body.area.trim() : "";
+  // "geneticist_request" comes from the genetic-counselling page: there's no
+  // "area" to ask for, and the person's topic is saved as a note so whoever
+  // calls back knows what they want to talk about.
+  const source = body?.source === "geneticist_request" ? "geneticist_request" : undefined;
+  const topic = typeof body?.topic === "string" ? body.topic.trim().slice(0, 400) : "";
+  const area = typeof body?.area === "string" && body.area.trim() ? body.area.trim() : source ? "—" : "";
 
   if (!name || !/^[6-9]\d{9}$/.test(phone) || !city || !area) {
     return NextResponse.json({ ok: false, error: "Please fill in all fields with a valid 10-digit phone number." }, { status: 400 });
   }
 
-  const lead = await prisma.lead.create({ data: { name, phone, city, area } });
+  const lead = await prisma.lead.create({ data: { name, phone, city, area, ...(source ? { source } : {}) } });
+  if (source && topic) {
+    await prisma.leadNote.create({ data: { leadId: lead.id, body: `Wants to speak to a geneticist about: ${topic}` } });
+  }
   await assignLeadToStaff(lead.id);
 
   return NextResponse.json({ ok: true });

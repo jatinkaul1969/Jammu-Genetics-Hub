@@ -9,6 +9,7 @@ import { useCart } from "@/lib/cart-context";
 import { LoginModal } from "@/components/LoginModal";
 import { SearchBox } from "@/components/SearchBox";
 import { CitySelector } from "@/components/CitySelector";
+import { useSelectedCityKey } from "@/lib/use-selected-city";
 
 export function Header() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export function Header() {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const cityKey = useSelectedCityKey();
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -124,6 +126,25 @@ export function Header() {
           <SearchBox placeholder="Search tests, packages…" />
         </div>
       )}
+
+      <nav aria-label="Main" className="border-t border-border/60">
+        <div className="no-scrollbar mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 sm:px-6">
+          {[
+            { href: `/${cityKey}/genetic-tests`, label: "Genetic tests" },
+            { href: `/${cityKey}/oncology-tests`, label: "Oncology tests" },
+            { href: `/${cityKey}/genetic-counselling`, label: "Talk to a geneticist" },
+            { href: "/search", label: "All tests" },
+          ].map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-xs font-medium text-ink-soft hover:bg-bg hover:text-brand sm:text-sm"
+            >
+              {l.label}
+            </Link>
+          ))}
+        </div>
+      </nav>
     </header>
 
     {showLogin && (

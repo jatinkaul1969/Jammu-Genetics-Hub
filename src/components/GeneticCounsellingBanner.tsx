@@ -60,10 +60,10 @@ export function GeneticCounsellingBanner({
               <MessageCircle size={15} /> {oncology ? "Ask on WhatsApp" : "Talk to a geneticist"}
             </a>
             <Link
-              href={`/${cityKey}/genetic-counselling`}
+              href={`/${cityKey}/genetic-counselling#talk-to-a-geneticist`}
               className="flex items-center gap-1 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-ink hover:border-brand"
             >
-              How genetic counselling works <ArrowRight size={14} />
+              Request a call back <ArrowRight size={14} />
             </Link>
           </div>
         </div>

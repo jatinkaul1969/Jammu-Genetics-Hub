@@ -36,6 +36,7 @@ export function CitySelector() {
     setOpen(false);
     try {
       localStorage.setItem(CITY_STORAGE_KEY, label);
+      window.dispatchEvent(new Event("jgh-city-change"));
     } catch {
       // ignore — selection still applies for this render
     }

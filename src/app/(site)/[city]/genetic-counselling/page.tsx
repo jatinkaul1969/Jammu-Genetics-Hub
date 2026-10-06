@@ -7,6 +7,7 @@ import { SERVICEABLE_CITIES, cityByKey } from "@/lib/serviceable-areas";
 import { inheritedShareImages } from "@/lib/seo";
 import { CONTACT_PHONES, buildWhatsAppLink } from "@/lib/contact";
 import { GENETICIST_CREDENTIAL } from "@/lib/genetics-content";
+import { GeneticistRequestForm } from "@/components/GeneticistRequestForm";
 
 export function generateStaticParams() {
   return SERVICEABLE_CITIES.map((c) => ({ city: c.key }));
@@ -134,7 +135,7 @@ export default async function GeneticCounsellingPage({ params }: { params: Promi
         <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
       ))}
 
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <nav className="mb-4 text-xs text-ink-faint">
           <Link href="/" className="hover:text-brand">Home</Link>
           {" / "}
@@ -143,35 +144,57 @@ export default async function GeneticCounsellingPage({ params }: { params: Promi
           <span className="text-ink-soft">Genetic counselling</span>
         </nav>
 
-        <div className="flex items-start gap-3">
-          <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
-            <BadgeCheck size={20} />
-          </span>
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">
-              Genetic Counselling in {city.label}
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">
-              A genetic test is only as useful as your understanding of it. Jammu Genetics Hub helps patients in{" "}
-              {city.label} connect with {GENETICIST_CREDENTIAL} who explain your options in plain language —
-              which test to choose, what the result means for you and your family, and what to do next.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <a
-                href={whatsappHref}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
-              >
-                <MessageCircle size={15} /> Talk to a geneticist on WhatsApp
-              </a>
-              <a
-                href={`tel:+91${CONTACT_PHONES[0]}`}
-                className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-ink hover:border-brand"
-              >
-                <Phone size={14} /> Call +91 {CONTACT_PHONES[0]}
-              </a>
+        <div className="grid items-start gap-8 lg:grid-cols-[1.15fr_1fr]">
+          <div className="flex items-start gap-3">
+            <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+              <BadgeCheck size={20} />
+            </span>
+            <div>
+              <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">
+                Genetic Counselling in {city.label} — talk to a certified geneticist
+              </h1>
+              <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+                A genetic test is only as useful as your understanding of it. Jammu Genetics Hub helps patients in{" "}
+                {city.label} connect with {GENETICIST_CREDENTIAL} who explain your options in plain language —
+                which test to choose, what the result means for you and your family, and what to do next.
+              </p>
+              <ul className="mt-4 space-y-2 text-sm text-ink-soft">
+                {[
+                  "Understand which genetic test, if any, you actually need",
+                  "Get your results explained clearly — before and after testing",
+                  "Know the next steps for you, your baby or your family",
+                  "Book the test with us, all in one place",
+                ].map((t) => (
+                  <li key={t} className="flex gap-2">
+                    <BadgeCheck size={16} className="mt-0.5 shrink-0 text-brand" /> <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
+                >
+                  <MessageCircle size={15} /> WhatsApp a geneticist
+                </a>
+                <a
+                  href={`tel:+91${CONTACT_PHONES[0]}`}
+                  className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-ink hover:border-brand"
+                >
+                  <Phone size={14} /> Call +91 {CONTACT_PHONES[0]}
+                </a>
+              </div>
             </div>
+          </div>
+
+          <div id="talk-to-a-geneticist" className="scroll-mt-24 rounded-2xl border border-brand/30 bg-surface p-5 shadow-sm sm:p-6">
+            <h2 className="font-display text-lg font-semibold text-ink">Request a call from a geneticist</h2>
+            <p className="mb-4 mt-1 text-sm text-ink-soft">
+              Tell us a little about what you need and our team will call you back and connect you with {GENETICIST_CREDENTIAL}.
+            </p>
+            <GeneticistRequestForm defaultCity={city.label} />
           </div>
         </div>
 
