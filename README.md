@@ -729,6 +729,66 @@ hand-written genetic tests (their other test pages are `noindex, follow`).
 filtered / paged `/search` URLs are `noindex`. The sitemap lists only indexable
 pages and has no `<lastmod>`.
 
+## Social Studio, alerts & growth tools
+
+**Social Studio** (`/admin/social`, owner login) makes ready-to-post material:
+
+- **Poster maker** — 12 poster types (test spotlight, who may need it, why it is
+  done, quick answers, price card, myth vs fact, did you know, pregnancy
+  timeline, home collection, announcement, custom, doctors' one-pager) in five
+  sizes (square, portrait, story, Google post, A4), three colour themes, for any
+  of the ~1,300 catalog tests. Each poster comes with a caption, hashtags, a
+  **tracked link** (`utm_source / utm_medium / utm_campaign`) and a WhatsApp
+  message. English is the default; Hindi is an optional toggle.
+- **30-day plan** — one post a day, Mon–Sat, with health-awareness days; each row
+  opens the poster maker pre-filled.
+- **Google profile kit** — business description, a to-do checklist, 24 services
+  with prices, and a review-request message.
+- **Video scripts** — 10 short to-camera scripts.
+
+Code lives in [`src/lib/social/`](src/lib/social). Posters are rendered with
+`next/og` (`ImageResponse`) by `GET /api/admin/social/poster` (admin-only, never
+cached). Satori cannot shape Devanagari, so [`text.tsx`](src/lib/social/text.tsx)
+lays all text out itself with `fontkit` and draws it as vector paths; fonts are
+read from [`src/assets/fonts`](src/assets/fonts) (see its README for licences).
+Put a real logo at `src/assets/brand/logo.png` and it replaces the "JGH" tile.
+Claims on posters (`BGCI-certified geneticists`, the home-collection fee) come
+from `src/lib/genetics-content.ts` and `src/lib/collection-slots.ts` — change them
+there and every poster follows.
+
+**Where did this enquiry come from?** [`Analytics.tsx`](src/components/Analytics.tsx)
+remembers the visitor's `utm_*` tags (or Google / Instagram / Facebook referrer)
+for 30 days in `localStorage`. The callback, geneticist and doctor forms and the
+checkout send it along; it is saved as a lead note ("Came from: …") and shown in
+the owner alerts, and WhatsApp links get `(ref: instagram/202611-…)` appended when
+tapped so the chat shows which post it came from. `/admin/growth` counts
+enquiries by type, channel and campaign and offers CSV downloads.
+
+**Switch-on-by-setting features.** None of these need a code change — add the
+setting in Vercel (Project → Settings → Environment Variables) and redeploy.
+
+| Setting | What it turns on |
+| --- | --- |
+| `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | Instant phone alerts: new enquiry, booking, WhatsApp chat |
+| `RESEND_API_KEY` + `OWNER_ALERT_EMAIL` (+ `ALERT_FROM_EMAIL`) | The same alerts by email |
+| `CRON_SECRET` | Required for the morning summary; also set as the `CRON_SECRET` repository secret |
+| `WHATSAPP_LEAD_TEMPLATE_NAME` (+ `WHATSAPP_TEMPLATE_LANG`, default `en`) | Automatic WhatsApp thank-you to a new enquirer (one text variable: first name; Meta must approve the template; needs the Cloud API settings above) |
+| `NEXT_PUBLIC_GA_ID` | Google Analytics 4 (also counts call and WhatsApp taps, form leads, completed bookings) |
+| `NEXT_PUBLIC_CLARITY_ID` | Microsoft Clarity heat-maps / recordings |
+| `NEXT_PUBLIC_GOOGLE_REVIEW_URL` | "Review us on Google" opens the review box directly |
+| `NEXT_PUBLIC_INSTAGRAM_URL`, `NEXT_PUBLIC_FACEBOOK_URL`, `NEXT_PUBLIC_YOUTUBE_URL` | Footer links and `sameAs` structured data |
+
+The **morning summary** (`/api/cron/daily-digest`) is called daily at 08:00 IST by
+[`.github/workflows/scheduled-jobs.yml`](.github/workflows/scheduled-jobs.yml).
+Vercel's free plan allows one cron a day, so GitHub does the scheduling: add the
+repository secrets `SITE_URL` and `CRON_SECRET` (same value as in Vercel). Until
+both exist the job exits without doing anything. The other cron routes
+(`pickup-reminders`, `assign-pickups`) can be added to the same workflow.
+
+`/for-doctors` is a public page for clinics, with a form that creates a lead of
+type `doctor_partner`. It deliberately offers no commission or incentive.
+`/privacy` is a plain-language privacy notice — have it reviewed before relying on it.
+
 ## Known gaps
 
 - Report PDFs are stored on local disk, not object storage — fine for a

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { PhoneCall, X, Check, Loader2 } from "lucide-react";
 import { SERVICEABLE_CITIES } from "@/lib/serviceable-areas";
+import { getAttribution } from "@/lib/attribution";
+import { trackEvent } from "@/lib/analytics";
 
 // The auto-prompt is dismissible for the session — the corner button
 // underneath it always stays put so a callback can still be requested later.
@@ -53,10 +55,11 @@ export function CallbackWidget() {
       const res = await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), phone, city: city.trim(), area: area.trim() }),
+        body: JSON.stringify({ name: name.trim(), phone, city: city.trim(), area: area.trim(), attribution: getAttribution() ?? undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not submit — please try again.");
+      trackEvent("generate_lead", { form: "callback" });
       setDone(true);
       sessionStorage.setItem(MODAL_DISMISS_KEY, "1");
     } catch (err) {

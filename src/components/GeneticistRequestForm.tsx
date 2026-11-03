@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Check, Loader2, PhoneCall } from "lucide-react";
 import { SERVICEABLE_CITIES } from "@/lib/serviceable-areas";
+import { getAttribution } from "@/lib/attribution";
+import { trackEvent } from "@/lib/analytics";
 
 const TOPICS = [
   "I'm pregnant or planning a pregnancy",
@@ -42,10 +44,12 @@ export function GeneticistRequestForm({ defaultCity }: { defaultCity: string }) 
           city,
           source: "geneticist_request",
           topic: details.trim() ? `${topic} — ${details.trim()}` : topic,
+          attribution: getAttribution() ?? undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not submit — please try again.");
+      trackEvent("generate_lead", { form: "geneticist_request" });
       setDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -131,7 +135,7 @@ export function GeneticistRequestForm({ defaultCity }: { defaultCity: string }) 
         {loading ? <Loader2 size={15} className="animate-spin" /> : <PhoneCall size={15} />} Request a call from a geneticist
       </button>
       <p className="text-center text-[11px] text-ink-faint">
-        We&apos;ll only use your number to call you about this request. This is not an emergency service.
+        We&apos;ll only use your number to call or WhatsApp you about this request. This is not an emergency service.
       </p>
     </form>
   );

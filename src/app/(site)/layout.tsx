@@ -8,6 +8,7 @@ import { Footer } from "@/components/Footer";
 import { GuestLoginPrompt } from "@/components/GuestLoginPrompt";
 import { ChatWidget } from "@/components/ChatWidget";
 import { CallbackWidget } from "@/components/CallbackWidget";
+import { Analytics } from "@/components/Analytics";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -115,6 +116,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <GuestLoginPrompt />
             <ChatWidget />
             <CallbackWidget />
+            <Analytics />
           </CartProvider>
         </AuthProvider>
       </body>

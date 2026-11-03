@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ShieldCheck, Home, Clock, Award, Mail, Phone, MessageCircle, MapPin, Star } from "lucide-react";
-import { CONTACT_EMAIL, CONTACT_PHONES, GOOGLE_BUSINESS_URL, WHATSAPP_GREETING, buildWhatsAppLink } from "@/lib/contact";
+import { CONTACT_EMAIL, CONTACT_PHONES, GOOGLE_BUSINESS_URL, GOOGLE_REVIEW_URL, SOCIAL_LINKS, WHATSAPP_GREETING, buildWhatsAppLink } from "@/lib/contact";
 import { getLabs } from "@/lib/catalog";
 import { SERVICEABLE_CITIES, formattedAddress, mapsUrl } from "@/lib/serviceable-areas";
 import { POPULAR_GENETIC_TESTS } from "@/lib/popular-tests";
@@ -28,6 +28,7 @@ export async function Footer() {
             <li><Link href="/contact" className="hover:text-brand">Contact &amp; directions</Link></li>
             <li><Link href="/search" className="hover:text-brand">All Tests &amp; Packages</Link></li>
             <li><Link href="/account/bookings" className="hover:text-brand">My Bookings</Link></li>
+            <li><Link href="/for-doctors" className="hover:text-brand">For doctors &amp; clinics</Link></li>
             {SERVICEABLE_CITIES.map((c) => (
               <li key={c.key}>
                 <Link href={`/${c.key}`} className="hover:text-brand">
@@ -104,10 +105,19 @@ export async function Footer() {
               </li>
             ))}
             <li>
-              <a href={GOOGLE_BUSINESS_URL} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-brand">
+              <a href={GOOGLE_REVIEW_URL || GOOGLE_BUSINESS_URL} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-brand">
                 <Star size={14} className="shrink-0 text-gold" /> Review us on Google
               </a>
             </li>
+            {SOCIAL_LINKS.length > 0 && (
+              <li className="flex flex-wrap gap-x-3 gap-y-1 pt-1">
+                {SOCIAL_LINKS.map((s) => (
+                  <a key={s.id} href={s.url} target="_blank" rel="noreferrer me" className="hover:text-brand">
+                    {s.label}
+                  </a>
+                ))}
+              </li>
+            )}
           </ul>
         </div>
       </div>
@@ -143,7 +153,7 @@ export async function Footer() {
 
       <div className="border-t border-border px-4 py-4 text-center text-xs text-ink-faint sm:px-6">
         © {new Date().getFullYear()} Jammu Genetics Hub. Test prices from other labs are shown for comparison
-        only and may vary from the listed lab&apos;s own website.
+        only and may vary from the listed lab&apos;s own website. <Link href="/privacy" className="underline hover:text-brand">Privacy</Link>
       </div>
     </footer>
   );

@@ -96,6 +96,37 @@ export async function sendOtpWhatsApp(to: string, code: string): Promise<OtpSend
   }
 }
 
+// Sends a pre-approved message template with text variables ({{1}}, {{2}}…) in
+// the body. Business-initiated messages outside WhatsApp's 24-hour window must
+// be a template, so this is what every automatic follow-up uses. Returns true
+// when Meta accepted the request. The template's language must match the one it
+// was created with (set WHATSAPP_TEMPLATE_LANG if that isn't "en").
+export async function sendWhatsAppTemplate(to: string, templateName: string, bodyParams: string[] = []): Promise<boolean> {
+  if (!whatsappCloudConfigured) return false;
+  try {
+    const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: process.env.WHATSAPP_TEMPLATE_LANG ?? "en" },
+          ...(bodyParams.length ? { components: [{ type: "body", parameters: bodyParams.map((text) => ({ type: "text", text })) }] } : {}),
+        },
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) console.error("WhatsApp template send failed", templateName, res.status, (await res.text().catch(() => "")).slice(0, 300));
+    return res.ok;
+  } catch (err) {
+    console.error("WhatsApp template send error", templateName, err instanceof Error ? err.message : err);
+    return false;
+  }
+}
+
 // Meta signs every webhook POST with the app secret. If WHATSAPP_APP_SECRET
 // isn't set yet (e.g. still setting up the Meta app), we allow requests
 // through unverified so local testing isn't blocked — but this must be set

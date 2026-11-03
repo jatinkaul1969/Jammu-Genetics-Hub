@@ -30,6 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: baseUrl, priority: 1 },
     { url: `${baseUrl}/about`, priority: 0.5 },
     { url: `${baseUrl}/contact`, priority: 0.6 },
+    { url: `${baseUrl}/for-doctors`, priority: 0.6 },
   ];
 
   for (const c of SERVICEABLE_CITIES) {

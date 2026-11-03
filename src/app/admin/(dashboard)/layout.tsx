@@ -45,6 +45,12 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
           <Link href="/admin/coupons" className="text-ink-soft hover:text-brand">
             Coupons
           </Link>
+          <Link href="/admin/social" className="text-ink-soft hover:text-brand">
+            Social Studio
+          </Link>
+          <Link href="/admin/growth" className="text-ink-soft hover:text-brand">
+            Growth
+          </Link>
           <Link href="/admin/settings" className="text-ink-soft hover:text-brand">
             Settings
           </Link>

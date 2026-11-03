@@ -1,8 +1,11 @@
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppText, verifyWhatsAppSignature } from "@/lib/whatsapp-cloud";
 import { aiConfigured, getAnthropicClient, CHAT_MODEL } from "@/lib/ai";
 import { SYSTEM_PROMPT, findRelevantProducts, formatProductContext } from "@/lib/chat-context";
 import { fallbackReply } from "@/lib/chat-fallback";
+import { notifyOwner } from "@/lib/notify-owner";
+import { SITE_URL } from "@/lib/site-url";
 
 // Customer explicitly asking for a person, or a request the bot can't act
 // on (cancel/reschedule) — either way, stop auto-replying and let an admin
@@ -59,11 +62,13 @@ export async function POST(req: Request) {
     return new Response("EVENT_RECEIVED", { status: 200 });
   }
 
+  const existing = await prisma.whatsAppConversation.findUnique({ where: { phone }, select: { id: true } });
   const conversation = await prisma.whatsAppConversation.upsert({
     where: { phone },
     create: { phone },
     update: {},
   });
+  const isNewChat = !existing;
 
   await prisma.whatsAppMessage.create({
     data: { conversationId: conversation.id, direction: "IN", sender: "customer", body: text },
@@ -76,6 +81,17 @@ export async function POST(req: Request) {
 
   const needsHandoff = HANDOFF_PATTERN.test(text);
   const products = await findRelevantProducts(text);
+
+  // The bot answers straight away; the owner still hears about a new person, or
+  // a request for a human, so a real reply can follow while the lead is warm.
+  if (isNewChat || needsHandoff) {
+    after(() =>
+      notifyOwner({
+        title: needsHandoff ? "🙋 WhatsApp: customer wants a person" : "💬 New WhatsApp chat",
+        lines: [`+${phone}`, `"${text.slice(0, 300)}"`, `Open: ${SITE_URL}/admin/whatsapp`],
+      })
+    );
+  }
 
   let reply: string;
   try {

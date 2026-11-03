@@ -21,3 +21,18 @@ export const WHATSAPP_GREETING = "Hi Jammu Genetics Hub! I have a question about
 // link. Set NEXT_PUBLIC_GOOGLE_BUSINESS_URL in Vercel — no code change needed.
 export const GOOGLE_BUSINESS_URL =
   process.env.NEXT_PUBLIC_GOOGLE_BUSINESS_URL || "https://share.google/qitcemOsTeMlJzUQt";
+
+// Optional: the direct "write a review" link for the Google profile (Business
+// Profile → "Ask for reviews" → copy the link). When set, every "Review us"
+// link opens the review box itself instead of the profile — more people finish
+// a review that is one tap away. Set NEXT_PUBLIC_GOOGLE_REVIEW_URL.
+export const GOOGLE_REVIEW_URL = process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL || "";
+
+// Optional social profiles — each shows in the footer (and in the structured
+// data, so Google ties the accounts to the business) once its setting exists:
+// NEXT_PUBLIC_INSTAGRAM_URL, NEXT_PUBLIC_FACEBOOK_URL, NEXT_PUBLIC_YOUTUBE_URL.
+export const SOCIAL_LINKS = [
+  { id: "instagram", label: "Instagram", url: process.env.NEXT_PUBLIC_INSTAGRAM_URL || "" },
+  { id: "facebook", label: "Facebook", url: process.env.NEXT_PUBLIC_FACEBOOK_URL || "" },
+  { id: "youtube", label: "YouTube", url: process.env.NEXT_PUBLIC_YOUTUBE_URL || "" },
+].filter((s) => s.url.startsWith("https://"));

@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { createBookingsForUser, type IncomingItem } from "@/lib/create-booking";
+import { notifyOwner } from "@/lib/notify-owner";
+import { SITE_URL } from "@/lib/site-url";
+import { parseAttribution } from "@/lib/parse-attribution";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -68,5 +71,26 @@ export async function POST(req: Request) {
   });
 
   if (!result.ok) return NextResponse.json(result, { status: 400 });
+
+  // Tell the owner straight away (after the response is sent).
+  const from = parseAttribution(body?.attribution);
+  after(async () => {
+    const rows = await prisma.booking.findMany({ where: { bookingCode: { in: result.bookingCodes } }, include: { items: true } });
+    if (!rows.length) return;
+    const first = rows[0];
+    const total = rows.reduce((n, b) => n + b.totalAmount, 0);
+    await notifyOwner({
+      title: `🧬 New booking ${result.bookingCodes.join(", ")}`,
+      lines: [
+        `${first.patientName} — +91 ${first.phone}`,
+        `${rows.flatMap((b) => b.items.map((i) => i.productName)).join(", ")}`,
+        `Visit: ${first.scheduledDate}, ${first.scheduledSlot} · ${first.city}`,
+        `Total ₹${total}`,
+        from && `Came from: ${from}`,
+        `Open: ${SITE_URL}/admin/bookings`,
+      ],
+    });
+  });
+
   return NextResponse.json(result);
 }

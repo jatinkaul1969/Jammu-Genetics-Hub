@@ -8,6 +8,8 @@ import { useCart } from "@/lib/cart-context";
 import { formatInr } from "@/lib/format";
 import { LoginModal } from "@/components/LoginModal";
 import { LocationPicker } from "@/components/LocationPicker";
+import { getAttribution } from "@/lib/attribution";
+import { trackEvent } from "@/lib/analytics";
 import {
   SERVICEABLE_CITIES,
   COMING_SOON_NOTE,
@@ -317,10 +319,12 @@ export function CheckoutForm({
           couponCode: appliedCoupon?.code,
           wantsHardCopy,
           wantsMembership,
+          attribution: getAttribution() ?? undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not create booking.");
+      trackEvent("booking_completed", { value: totalPrice });
       setBookingComplete(true);
       clear();
       router.push(`/booking/confirmed?codes=${data.bookingCodes.join(",")}`);

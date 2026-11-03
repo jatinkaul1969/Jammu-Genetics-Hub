@@ -13,6 +13,8 @@ import { groupByName, knowledgeFor } from "@/lib/test-knowledge";
 // The credential as the business owner states it. Not expanded here on
 // purpose — keep it exactly as claimed, and only where it can be backed up.
 export const GENETICIST_CREDENTIAL = "BGCI-certified geneticists";
+// Hindi form of the same claim, used on the Hindi posters. Change both together.
+export const GENETICIST_CREDENTIAL_HI = "BGCI-प्रमाणित जेनेटिसिस्ट";
 
 export type GeneticTestContent = {
   group: string;
