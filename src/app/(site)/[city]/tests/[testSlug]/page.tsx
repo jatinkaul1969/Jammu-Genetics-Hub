@@ -29,6 +29,7 @@ import { HUBS, hubPath } from "@/lib/hub-config";
 import { getTestIndex } from "@/lib/test-index";
 import { groupByName } from "@/lib/test-knowledge";
 import { GeneticCounsellingBanner } from "@/components/GeneticCounsellingBanner";
+import { publicIncludes } from "@/lib/public-includes";
 
 // Served from cache and refreshed hourly — landing pages must be fast for
 // Google's crawler and for patients on mobile.
@@ -48,14 +49,6 @@ export function generateStaticParams() {
 export const dynamicParams = true;
 
 type Product = NonNullable<Awaited<ReturnType<typeof getProductBySlug>>>;
-
-// Legal: disclosing the sex of a fetus is prohibited in India (PCPNDT Act).
-// Some partner labs list it as an optional NIPT add-on in their own catalogs,
-// but we never publish it on a public page.
-function publicIncludes(product: Product): string[] {
-  const includes: string[] = JSON.parse(product.includesJson);
-  return includes.filter((i) => !/fetal sex|baby'?s sex|gender of/i.test(i));
-}
 
 function buildFaq(
   product: Product,

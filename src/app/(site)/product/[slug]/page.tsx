@@ -11,6 +11,7 @@ import { SERVICEABLE_CITIES } from "@/lib/serviceable-areas";
 import { inheritedShareImages } from "@/lib/seo";
 import { contentForProduct } from "@/lib/genetics-content";
 import { buildWhatsAppLink } from "@/lib/contact";
+import { publicIncludes } from "@/lib/public-includes";
 
 // Served from cache and refreshed hourly — landing pages must be fast for
 // Google's crawler and for patients on mobile.
@@ -59,7 +60,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const includes: string[] = JSON.parse(product.includesJson);
+  const includes = publicIncludes(product);
   const sortedPrices = [...product.prices].sort((a, b) => a.price - b.price);
   const lowestPrice = sortedPrices[0]?.price ?? 0;
   const baseUrl = await getBaseUrl();
