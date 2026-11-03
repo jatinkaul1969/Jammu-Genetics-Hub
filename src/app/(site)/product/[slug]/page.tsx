@@ -12,6 +12,17 @@ import { inheritedShareImages } from "@/lib/seo";
 import { contentForProduct } from "@/lib/genetics-content";
 import { buildWhatsAppLink } from "@/lib/contact";
 
+// Served from cache and refreshed hourly — landing pages must be fast for
+// Google's crawler and for patients on mobile.
+export const revalidate = 3600;
+
+// No slugs are pre-rendered; each product's page is built on its first visit and
+// then cached (refreshed hourly) — an empty list is what opts a dynamic route
+// into that instead of rendering fresh on every request.
+export function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> },
   parent: ResolvingMetadata
@@ -28,12 +39,16 @@ export async function generateMetadata(
   const title = `${product.name} Price in Jammu — Book Online`;
   const description = `Book ${product.name} in Jammu starting at ${lowest ? formatInr(lowest.price) : "the lowest price"}. ${product.prices.length > 1 ? `Compare this ${kind}'s price across ${product.prices.map((x) => x.lab.isOwn ? 'Jammu Genetics Hub' : x.lab.name).slice(0, 5).join(', ')}` : `Price from ${product.prices[0]?.lab.name ?? 'our partner lab'}`}, then book with Jammu Genetics Hub. ${product.parameters} parameters, report in ${formatTat(product.reportHours)}.`;
   const url = `/product/${product.slug}`;
+  // The /jammu/tests/<slug> landing page is the version meant to rank; this is
+  // the booking view of the same test, so it points there to avoid the two
+  // competing with each other for the same search.
+  const canonical = product.prices.length > 0 ? `/${SERVICEABLE_CITIES[0].key}/tests/${product.slug}` : url;
   const shareImages = await inheritedShareImages(parent);
 
   return {
     title,
     description,
-    alternates: { canonical: url },
+    alternates: { canonical },
     openGraph: { title, description, type: "website", url, images: shareImages.openGraph },
     twitter: { card: "summary_large_image", title, description, images: shareImages.twitter },
   };

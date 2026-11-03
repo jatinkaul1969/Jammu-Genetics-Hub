@@ -30,10 +30,16 @@ import { getTestIndex } from "@/lib/test-index";
 import { groupByName } from "@/lib/test-knowledge";
 import { GeneticCounsellingBanner } from "@/components/GeneticCounsellingBanner";
 
-// Only the hand-written genetic tests are pre-rendered at build time. Every
-// other test (the ~1,300 imported partner-lab tests, plus anything added in the
-// admin later) renders on first request — so a new test gets its page without
-// a redeploy. The page itself 404s unknown cities / tests / unpriced tests,
+// Served from cache and refreshed hourly — landing pages must be fast for
+// Google's crawler and for patients on mobile.
+export const revalidate = 3600;
+
+// Only the hand-written genetic tests are pre-rendered at build time.
+// Pre-rendering all ~1,300 tests makes the build hammer the database (pages
+// time out and the deploy can fail). Every other test — the imported partner-lab
+// tests, and anything added in the admin later — is rendered on its first visit
+// and then served from cache (refreshed hourly), so a new test gets its page
+// without a redeploy. The page 404s unknown cities / tests / unpriced tests,
 // so this can't be used to mint pages for places we don't serve.
 export function generateStaticParams() {
   return SERVICEABLE_CITIES.flatMap((city) => GENETICS_SLUGS.map((slug) => ({ city: city.key, testSlug: slug })));
@@ -149,10 +155,15 @@ export async function generateMetadata(
     : `${product.name} in ${city.label} costs ${price} onwards with free home sample collection, reports in ${formatTat(product.reportHours)}. Compare ${product.prices.length} labs and book online.`;
   const url = `/${city.key}/tests/${product.slug}`;
   const shareImages = await inheritedShareImages(parent);
+  // Keep Google's attention on pages with real substance: a non-primary city
+  // only gets its hand-written genetic-test pages indexed. The rest stay
+  // reachable (and followable) for visitors, just not offered to the index.
+  const indexable = city.indexAllTests || GENETICS_SLUGS.includes(product.slug);
 
   return {
     title,
     description,
+    robots: indexable ? undefined : { index: false, follow: true },
     keywords: content
       ? [
           ...content.aliases.slice(0, 6).map((a) => `${a} in ${city.label}`),

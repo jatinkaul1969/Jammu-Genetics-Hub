@@ -9,6 +9,10 @@ import { getBaseUrl } from "@/lib/site-url";
 import { SERVICEABLE_CITIES, mapsUrl } from "@/lib/serviceable-areas";
 import { buildBusinessJsonLd } from "@/lib/seo";
 
+// Served from cache and refreshed hourly — landing pages must be fast for
+// Google's crawler and for patients on mobile.
+export const revalidate = 3600;
+
 export default async function HomePage() {
   const [categories, popularProducts, labs, baseUrl] = await Promise.all([
     getCategories(),

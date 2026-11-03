@@ -9,6 +9,10 @@ import { CONTACT_PHONES, buildWhatsAppLink } from "@/lib/contact";
 import { GENETICIST_CREDENTIAL } from "@/lib/genetics-content";
 import { GeneticistRequestForm } from "@/components/GeneticistRequestForm";
 
+// Served from cache and refreshed hourly — landing pages must be fast for
+// Google's crawler and for patients on mobile.
+export const revalidate = 3600;
+
 export function generateStaticParams() {
   return SERVICEABLE_CITIES.map((c) => ({ city: c.key }));
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 type PriceInput = { labId: string; price: number; mrp: number; testCode?: string | null };
 
@@ -32,6 +33,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     })
   );
 
+  revalidateCatalog();
   return NextResponse.json({ ok: true });
 }
 
@@ -47,5 +49,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   if (!labId) return NextResponse.json({ ok: false, error: "labId is required." }, { status: 400 });
 
   await prisma.price.deleteMany({ where: { productId: id, labId } });
+  revalidateCatalog();
   return NextResponse.json({ ok: true });
 }

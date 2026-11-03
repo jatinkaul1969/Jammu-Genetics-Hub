@@ -9,6 +9,10 @@ import { getBaseUrl } from "@/lib/site-url";
 import { SERVICEABLE_CITIES, cityByKey, mapsUrl } from "@/lib/serviceable-areas";
 import { inheritedShareImages, buildBusinessJsonLd } from "@/lib/seo";
 
+// Served from cache and refreshed hourly — landing pages must be fast for
+// Google's crawler and for patients on mobile.
+export const revalidate = 3600;
+
 export function generateStaticParams() {
   return SERVICEABLE_CITIES.map((c) => ({ city: c.key }));
 }

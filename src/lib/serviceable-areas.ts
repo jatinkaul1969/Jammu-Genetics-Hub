@@ -21,6 +21,15 @@ export type ServiceableCity = {
   /** Real street address of the business in this city, if it has one — must
    *  match the Google Business Profile exactly (NAP consistency). */
   address?: { streetAddress: string; postalCode: string };
+  /**
+   * True for the city where the business is based. Only the primary city's
+   * page for EVERY test is offered to Google; other cities index their hub
+   * pages and the hand-written genetic-test pages only. ~1,300 near-identical
+   * "{test} in {city}" pages per city on a brand-new domain read as thin,
+   * duplicated content, so we keep the crawl focused. Flip `indexAllTests`
+   * on for another city once the site has authority and a real local presence.
+   */
+  indexAllTests?: boolean;
 };
 
 export const SERVICEABLE_CITIES: ServiceableCity[] = [
@@ -30,6 +39,7 @@ export const SERVICEABLE_CITIES: ServiceableCity[] = [
     pincodePrefixes: ["180", "181"],
     state: "Jammu and Kashmir",
     address: { streetAddress: "Lane No-1, New Plots, 299a, Sarwal, Morh", postalCode: "180005" },
+    indexAllTests: true,
   },
   { key: "mumbai", label: "Mumbai", pincodePrefixes: ["400"], state: "Maharashtra" },
 ];

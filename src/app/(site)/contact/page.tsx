@@ -6,6 +6,10 @@ import { SERVICEABLE_CITIES, formattedAddress, mapsUrl } from "@/lib/serviceable
 import { getBaseUrl } from "@/lib/site-url";
 import { buildBusinessJsonLd, inheritedShareImages } from "@/lib/seo";
 
+// Served from cache and refreshed hourly — landing pages must be fast for
+// Google's crawler and for patients on mobile.
+export const revalidate = 3600;
+
 export async function generateMetadata(_: unknown, parent: ResolvingMetadata): Promise<Metadata> {
   const title = "Contact Jammu Genetics Hub — Address, Phone & Directions in Jammu";
   const description =

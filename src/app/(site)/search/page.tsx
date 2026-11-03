@@ -15,7 +15,11 @@ export async function generateMetadata(
   { searchParams }: { searchParams: Promise<SearchParams> },
   parent: ResolvingMetadata
 ): Promise<Metadata> {
-  const { q } = await searchParams;
+  const { q, category, type, page } = await searchParams;
+  // Internal search results are thin, endlessly-varying pages — keep them out of
+  // the index (links on them are still followed). The dedicated genetic /
+  // oncology pages are the ones meant to rank.
+  const filtered = Boolean(q || category || type || page);
   const title = q
     ? `${q} — Compare Prices Across Labs in Jammu`
     : "Search Diagnostic Tests & Packages in Jammu";
@@ -31,6 +35,7 @@ export async function generateMetadata(
     // so they shouldn't compete with each other (or with the dedicated
     // /[city]/tests/[slug] pages, which are the real per-test pages) in
     // Google's index.
+    robots: filtered ? { index: false, follow: true } : undefined,
     alternates: { canonical: "/search" },
     openGraph: { title, description, type: "website", url: "/search", images: shareImages.openGraph },
     twitter: { card: "summary_large_image", title, description, images: shareImages.twitter },

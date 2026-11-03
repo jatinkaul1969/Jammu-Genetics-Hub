@@ -7,6 +7,10 @@ import { HUBS, hubPath } from "@/lib/hub-config";
 import { groupCounts, hubProductsByGroup } from "@/lib/test-index";
 import { HubView } from "@/components/TestHubViews";
 
+// Served from cache and refreshed hourly — landing pages must be fast for
+// Google's crawler and for patients on mobile.
+export const revalidate = 3600;
+
 export function generateStaticParams() {
   return SERVICEABLE_CITIES.map((c) => ({ city: c.key }));
 }

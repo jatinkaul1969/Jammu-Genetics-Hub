@@ -273,11 +273,29 @@ export function GroupView({
           price.
         </p>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          {products.map((p) => (
-            <TestCard key={p.slug} cityKey={city.key} p={p} />
-          ))}
-        </div>
+        {products.length > 40 ? (
+          // Long lists (e.g. 200+ leukemia tests) use compact rows: the same
+          // links and prices, a fraction of the page weight.
+          <ul className="mt-6 divide-y divide-border rounded-xl border border-border bg-surface">
+            {products.map((p) => (
+              <li key={p.slug}>
+                <Link
+                  href={`/${city.key}/tests/${p.slug}`}
+                  className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm hover:bg-bg"
+                >
+                  <span className="text-ink">{p.name}</span>
+                  <span className="shrink-0 font-mono text-xs font-medium text-brand-dark">{formatInr(p.lowestPrice)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {products.map((p) => (
+              <TestCard key={p.slug} cityKey={city.key} p={p} />
+            ))}
+          </div>
+        )}
 
         <section className="mt-12">
           <GeneticCounsellingBanner cityKey={city.key} cityLabel={city.label} variant={hub} />

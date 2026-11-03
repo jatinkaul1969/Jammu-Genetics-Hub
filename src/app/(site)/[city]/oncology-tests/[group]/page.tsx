@@ -9,6 +9,10 @@ import { groupCounts, groupForHubSlug, slugsInGroup } from "@/lib/test-index";
 import { getProductsBySlugs } from "@/lib/catalog";
 import { GroupView } from "@/components/TestHubViews";
 
+// Served from cache and refreshed hourly — landing pages must be fast for
+// Google's crawler and for patients on mobile.
+export const revalidate = 3600;
+
 const HUB = "oncology" as const;
 
 export function generateStaticParams() {

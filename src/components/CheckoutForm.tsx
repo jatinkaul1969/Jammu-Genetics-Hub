@@ -67,7 +67,7 @@ export function CheckoutForm({
   savedAddresses: SavedAddress[];
 }) {
   const router = useRouter();
-  const { user, login } = useAuth();
+  const { user, ready, login } = useAuth();
   const { items, hydrated, totalPrice, totalMrp, clear } = useCart();
   const [showLogin, setShowLogin] = useState(false);
 
@@ -336,7 +336,7 @@ export function CheckoutForm({
 
   return (
     <>
-      {!user && (
+      {ready && !user && (
         <div className="mb-6 flex items-center justify-between rounded-xl border border-gold-soft bg-gold-soft px-4 py-3">
           <p className="text-sm text-ink">Log in with your phone number to complete this booking.</p>
           <button

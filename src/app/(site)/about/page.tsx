@@ -7,6 +7,10 @@ import { SERVICEABLE_CITIES, formattedAddress, mapsUrl } from "@/lib/serviceable
 import { getBaseUrl } from "@/lib/site-url";
 import { buildBusinessJsonLd, inheritedShareImages } from "@/lib/seo";
 
+// Served from cache and refreshed hourly — landing pages must be fast for
+// Google's crawler and for patients on mobile.
+export const revalidate = 3600;
+
 export async function generateMetadata(_: unknown, parent: ResolvingMetadata): Promise<Metadata> {
   const title = "About Jammu Genetics Hub — Genetic & Diagnostic Tests in Jammu";
   const description = `Jammu Genetics Hub is a one-stop platform in Jammu for genetic and oncology tests: compare partner-lab prices, book home sample collection, and connect with ${GENETICIST_CREDENTIAL}.`;

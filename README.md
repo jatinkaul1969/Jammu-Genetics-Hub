@@ -700,6 +700,35 @@ price (MRP); set Jammu Genetics Hub's own price per test in the admin.
 The landing pages are `/[city]/genetic-tests`, `/[city]/oncology-tests` and
 their per-group pages; `/[city]/tests/[slug]` renders on demand for any test.
 
+## Speed & search-visibility architecture
+
+Public pages (home, `/[city]`, the genetic / oncology hubs and group pages,
+`/[city]/tests/[slug]`, About, Contact) are **cached** and refreshed hourly
+(`export const revalidate = 3600`). For that to work they must not read
+cookies or request headers on the server, so:
+
+- The logged-in user is looked up in the browser (`AuthProvider` →
+  `/api/auth/me`), **not** in the root layout. `useAuth()` exposes `ready`;
+  treat `user === null` as "logged out" only once `ready` is true.
+- `getBaseUrl()` returns a constant (`NEXT_PUBLIC_SITE_URL`, else the vercel.app
+  address) instead of reading the Host header.
+- Anything that changes the catalog in the admin calls `revalidateCatalog()`
+  ([`src/lib/revalidate-catalog.ts`](src/lib/revalidate-catalog.ts)) so cached
+  pages don't show a stale price.
+- Only the 25 hand-written genetic tests are pre-rendered at build time; every
+  other test page is built on its first visit, then cached. (Pre-rendering all
+  ~1,300 overloads the database during the build.)
+- [`vercel.json`](vercel.json) pins functions to `sin1` (Singapore), next to the
+  database. They used to run in Washington D.C. and every query crossed the
+  planet.
+
+Indexing rules: Jammu (`indexAllTests` in `serviceable-areas.ts`) is offered to
+Google for every test; other cities only for their hub pages and the
+hand-written genetic tests (their other test pages are `noindex, follow`).
+`/product/<slug>` canonicalises to the matching `/jammu/tests/<slug>`, and
+filtered / paged `/search` URLs are `noindex`. The sitemap lists only indexable
+pages and has no `<lastmod>`.
+
 ## Known gaps
 
 - Report PDFs are stored on local disk, not object storage — fine for a

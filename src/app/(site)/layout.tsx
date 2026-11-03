@@ -8,8 +8,6 @@ import { Footer } from "@/components/Footer";
 import { GuestLoginPrompt } from "@/components/GuestLoginPrompt";
 import { ChatWidget } from "@/components/ChatWidget";
 import { CallbackWidget } from "@/components/CallbackWidget";
-import { getCurrentUser } from "@/lib/session";
-import { isMembershipActive } from "@/lib/collection-slots";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -102,21 +100,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const user = await getCurrentUser();
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
       className={`${fraunces.variable} ${plexSans.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-bg text-ink">
-        <AuthProvider
-          initialUser={
-            user
-              ? { name: user.name, phone: user.phone, age: user.age, membershipActive: isMembershipActive(user) }
-              : null
-          }
-        >
+        <AuthProvider>
           <CartProvider>
             <Header />
             <main className="flex-1">{children}</main>

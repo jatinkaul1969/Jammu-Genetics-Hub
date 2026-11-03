@@ -71,12 +71,15 @@ function mergeGuestIntoAccount(phone: string) {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const identityRef = useRef<string | null>(null); // null = not yet initialized this session
 
   useEffect(() => {
+    // Wait until we know whether someone is logged in, so the cart is loaded
+    // once, for the right identity (not guest-then-account).
+    if (!ready) return;
     const nextIdentity = user?.phone ?? "guest";
     const prevIdentity = identityRef.current;
 
@@ -101,7 +104,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems(nextItems);
     identityRef.current = nextIdentity;
     setHydrated(true);
-  }, [user?.phone]);
+  }, [user?.phone, ready]);
 
   useEffect(() => {
     if (!hydrated) return;

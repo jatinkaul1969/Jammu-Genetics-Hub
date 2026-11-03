@@ -3,6 +3,9 @@ import { ShieldCheck, Home, Clock, Award, Mail, Phone, MessageCircle, MapPin, St
 import { CONTACT_EMAIL, CONTACT_PHONES, GOOGLE_BUSINESS_URL, WHATSAPP_GREETING, buildWhatsAppLink } from "@/lib/contact";
 import { getLabs } from "@/lib/catalog";
 import { SERVICEABLE_CITIES, formattedAddress, mapsUrl } from "@/lib/serviceable-areas";
+import { POPULAR_GENETIC_TESTS } from "@/lib/popular-tests";
+import { TEST_GROUPS } from "@/lib/test-knowledge";
+import { hubPath } from "@/lib/hub-config";
 
 export async function Footer() {
   const labs = await getLabs();
@@ -106,6 +109,35 @@ export async function Footer() {
               </a>
             </li>
           </ul>
+        </div>
+      </div>
+
+      <div className="border-t border-border">
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 md:grid-cols-2">
+          <div>
+            <p className="mb-2 font-display text-sm font-semibold text-ink">Popular genetic tests in {SERVICEABLE_CITIES[0].label}</p>
+            <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-ink-soft">
+              {POPULAR_GENETIC_TESTS.map((t) => (
+                <li key={t.slug}>
+                  <Link href={`/${SERVICEABLE_CITIES[0].key}/tests/${t.slug}`} className="hover:text-brand">
+                    {t.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="mb-2 font-display text-sm font-semibold text-ink">Cancer (oncology) tests in {SERVICEABLE_CITIES[0].label}</p>
+            <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-ink-soft">
+              {TEST_GROUPS.filter((g) => g.hubs[0] === "oncology").map((g) => (
+                <li key={g.slug}>
+                  <Link href={hubPath(SERVICEABLE_CITIES[0].key, "oncology", g.slug)} className="hover:text-brand">
+                    {g.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
 

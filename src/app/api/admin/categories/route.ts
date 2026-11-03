@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { slugify } from "@/lib/slug";
 
 export async function POST(req: Request) {
@@ -19,5 +20,6 @@ export async function POST(req: Request) {
   if (existing) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
 
   const category = await prisma.category.create({ data: { slug, name, icon, order } });
+  revalidateCatalog();
   return NextResponse.json({ ok: true, category });
 }

@@ -13,7 +13,7 @@ import { useSelectedCityKey } from "@/lib/use-selected-city";
 
 export function Header() {
   const router = useRouter();
-  const { user, login, logout: authLogout } = useAuth();
+  const { user, ready, login, logout: authLogout } = useAuth();
   const { items } = useCart();
   const [showLogin, setShowLogin] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
@@ -71,7 +71,9 @@ export function Header() {
             )}
           </Link>
 
-          {user ? (
+          {!ready ? (
+            <div className="h-9 w-[72px]" aria-hidden />
+          ) : user ? (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setShowAccountMenu((v) => !v)}

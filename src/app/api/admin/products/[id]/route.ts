@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!(await isAdminAuthenticated())) {
@@ -32,6 +33,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (body.badge === null || typeof body.badge === "string") data.badge = body.badge?.trim() || null;
 
   const product = await prisma.product.update({ where: { id }, data });
+  revalidateCatalog();
   return NextResponse.json({ ok: true, product });
 }
 
@@ -54,5 +56,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   await prisma.price.deleteMany({ where: { productId: id } });
   await prisma.product.delete({ where: { id } });
+  revalidateCatalog();
   return NextResponse.json({ ok: true });
 }

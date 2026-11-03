@@ -41,6 +41,11 @@ async function build(): Promise<Index> {
   return { entries, byGroup };
 }
 
+/** Forget the cached index so the next page render rebuilds it (after catalog edits). */
+export function resetTestIndex() {
+  memo = null;
+}
+
 export function getTestIndex(): Promise<Index> {
   if (!memo || Date.now() - memo.at > TTL_MS) {
     memo = { at: Date.now(), value: build() };

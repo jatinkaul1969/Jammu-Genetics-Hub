@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-session";
 import { prisma } from "@/lib/prisma";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { slugify } from "@/lib/slug";
 
 export async function POST(req: Request) {
@@ -67,5 +68,6 @@ export async function POST(req: Request) {
     },
   });
 
+  revalidateCatalog();
   return NextResponse.json({ ok: true, product });
 }
